@@ -1,0 +1,126 @@
+tcp:
+  enabled: true
+  host: 0.0.0.0
+  port: 2000
+  version: 0x0C
+  steering_endian: little
+  log_frames: true
+
+api:
+  host: 0.0.0.0
+  port: 8000
+
+state:
+  source_priority:
+    - api
+    - xbox
+    - can
+    - serial
+
+serial:
+  enabled: false
+  port: COM1
+  baudrate: 115200
+  timeout: 0.05
+
+can:
+  enabled: false
+  interface: vector
+  channel: 0
+  bitrate: 500000
+  dbc_path: config/can.dbc
+  signal_aliases: {}
+
+xbox:
+  enabled: false
+  poll_interval: 0.02
+  mappings:
+    - kind: axis
+      index: 0
+      signal: Steering
+      in_min: -1
+      in_max: 1
+      out_min: -450
+      out_max: 450
+    - kind: axis
+      index: 4
+      signal: Brake
+      in_min: -1
+      in_max: 1
+      out_min: 0
+      out_max: 100
+    - kind: axis
+      index: 5
+      signal: Throttle
+      in_min: -1
+      in_max: 1
+      out_min: 0
+      out_max: 100
+    - kind: hat
+      index: 0
+      signal: S2-N
+      hat_y: 1
+      pressed_value: 1
+      released_value: 0
+    - kind: hat
+      index: 0
+      signal: S2-D
+      hat_y: -1
+      pressed_value: 1
+      released_value: 0
+    - kind: hat
+      index: 0
+      signal: S2-R
+      hat_x: -1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 0
+      signal: A1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 1
+      signal: A2
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 2
+      signal: A3
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 3
+      signal: X1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 4
+      signal: X5-1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 5
+      signal: X5-2
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 6
+      signal: X2
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 7
+      signal: J1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 8
+      signal: X3-1
+      pressed_value: 1
+      released_value: 0
+    - kind: button
+      index: 9
+      signal: X3-2
+      pressed_value: 1
+      released_value: 0

@@ -1,0 +1,122 @@
+{
+  "http": {
+    "host": "0.0.0.0",
+    "port": 18080
+  },
+  "tcp": {
+    "host": "0.0.0.0",
+    "port": 25300,
+    "heartbeat_timeout_seconds": 30,
+    "debug_hex": true
+  },
+  "mode": "default",
+  "scenario": {
+    "http_delay_ms": 0,
+    "tcp_delay_ms": 0,
+    "force_auth_failure": false,
+    "disconnect_after_command": null,
+    "malformed_tcp_response": false
+  },
+  "vehicle_control": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 18081
+  },
+  "tenant_key": "bsh",
+  "application_id": 6,
+  "user_menus": [
+    {
+      "menuName": "添加用户",
+      "path": "admin"
+    },
+    {
+      "menuName": "允许控车",
+      "path": "driver"
+    },
+    {
+      "menuName": "监控车辆",
+      "path": "observer"
+    }
+  ],
+  "cockpit": {
+    "id": "SYZKRMCAB20231001",
+    "ip": "192.168.44.1",
+    "port": 60006,
+    "status": 0,
+    "hardware_version": "0101",
+    "software_version": "0101"
+  },
+  "accounts": [
+    {
+      "mobile": "15274989179",
+      "password": "123abAB@",
+      "user_id": "1682284841898139649",
+      "user_name": "刘素素",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsicmVzMSJdLCJ1c2VyX2lkIjoxNjgyMjg0ODQxODk4MTM5NjQ5LCJ1c2VyX25hbWUiOiIxNTI3NDk4OTE3OSIsInNjb3BlIjpbImFsbCJdLCJleHAiOjE3Nzg2NTA1NzIsImF1dGhvcml0aWVzIjpbIlJPTEVfYWRtaW4iLCJST0xFX3VzZXIiXSwianRpIjoiNWIwYmE0NTQtZTIzMC00NGRhLTkyNGQtZjEyZmQ1ODNjNDY1IiwiY2xpZW50X2lkIjoiNiJ9.Ef1PAcCyOrS88AUurVcU0RMWAVxWsCUdY4YbH4di2dM",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsicmVzMSJdLCJ1c2VyX2lkIjoxNjgyMjg0ODQxODk4MTM5NjQ5LCJ1c2VyX25hbWUiOiIxNTI3NDk4OTE3OSIsInNjb3BlIjpbImFsbCJdLCJhdGkiOiI1YjBiYTQ1NC1lMjMwLTQ0ZGEtOTI0ZC1mMTJmZDU4M2M0NjUiLCJleHAiOjE3Nzg2NTA1NzIsImF1dGhvcml0aWVzIjpbIlJPTEVfYWRtaW4iLCJST0xFX3VzZXIiXSwianRpIjoiYjU4NGQ1MTktYWJlZi00ODA3LWFmZjgtYjNkOTRiOTZiN2I5IiwiY2xpZW50X2lkIjoiNiJ9.ikHbtG4zU9OvoFYIWIKZG_rf_7xN5p5S3k5-krbrcxQ",
+      "expires_in": 259199,
+      "jti": "5b0ba454-e230-44da-924d-f12fd583c465"
+    }
+  ],
+  "vehicles": [
+    {
+      "vin": "SYZKRMCAB25090501",
+      "name": "西安园区测试车",
+      "plate_no": "西安园区测试车",
+      "device_id": 6005,
+      "mine_id": "1788796646726422529",
+      "urgency": 1,
+      "default": true,
+      "vehicle_no": 145,
+      "vehicle_type": 1,
+      "work_mode": 2,
+      "status": 3,
+      "fault_level": 0,
+      "video_id": "Sany_test50054",
+      "iccid": "8986112520609227347",
+      "hardware_version": "0101",
+      "software_version": "0102",
+      "driving_state": 2,
+      "gear": 0,
+      "length_mm": 10000,
+      "width_mm": 3500,
+      "camera_height_mm": 2500,
+      "front_blind_spot_mm": 5000,
+      "camera_pitch_deg": 0,
+      "realtime_report": {
+        "speed_deci_kmh": 0,
+        "heading_raw": -1,
+        "wheel_center_raw": 400,
+        "throttle_percent": 0,
+        "brake_percent": 0,
+        "engine_speed_raw": 12000,
+        "total_mileage_deci_km": 56500,
+        "trip_mileage_deci_km": 1,
+        "pitch_raw": 89,
+        "gear": 0,
+        "fuel_or_battery_percent": 89,
+        "water_temperature_raw": 74,
+        "brake_pressure1_raw": 89,
+        "brake_pressure2_raw": 89,
+        "left_switch": 0,
+        "right_switch": 0,
+        "button_operation1": 0,
+        "button_operation2": 0,
+        "driving_state": 2,
+        "lift_reached": 0,
+        "lower_reached": 0,
+        "fault_info1": 0,
+        "fault_info2": 0
+      }
+    }
+  ],
+  "map": {
+    "mine_id": "1788796646726422529",
+    "mine_name": "西安园区",
+    "mine_identifier": "xianyuanqu",
+    "road_version": "0994_001_99_202411200800",
+    "area_version": "0994_001_99_202411200800",
+    "include_versions_in_tcp": false,
+    "base_url": "http://127.0.0.1:18080/static/map"
+  }
+}

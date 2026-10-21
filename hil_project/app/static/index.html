@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HIL 接口平台</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="rail" aria-label="主导航">
+        <div class="rail-mark">HIL</div>
+        <button class="rail-button active" type="button" title="信号状态" aria-label="信号状态">
+          <span class="icon-grid" aria-hidden="true"></span>
+        </button>
+        <button class="rail-button" type="button" title="事件日志" aria-label="事件日志">
+          <span class="icon-log" aria-hidden="true"></span>
+        </button>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>HIL 接口平台</h1>
+            <p>TCP 网关实时监控与 API 写入控制</p>
+          </div>
+          <section class="connection-panel" aria-label="服务连接">
+            <label>
+              <span>IP 地址</span>
+              <input id="hostInput" name="host" type="text" autocomplete="off" />
+            </label>
+            <label>
+              <span>端口</span>
+              <input id="portInput" name="port" type="number" min="1" max="65535" />
+            </label>
+            <button id="connectButton" class="primary-button" type="button">连接</button>
+            <button id="disconnectButton" class="secondary-button" type="button" disabled>断开</button>
+            <div id="connectionStatus" class="status-pill offline">
+              <span></span>
+              <strong id="connectionStatusText">未连接</strong>
+            </div>
+          </section>
+        </header>
+
+        <section class="summary-row" aria-label="概要状态">
+          <div class="summary-item">
+            <span>在线状态</span>
+            <strong id="summaryOnline">离线</strong>
+          </div>
+          <div class="summary-item">
+            <span>信号数量</span>
+            <strong id="summaryCount">--</strong>
+          </div>
+          <div class="summary-item">
+            <span>故障状态</span>
+            <strong id="summaryFault">--</strong>
+          </div>
+          <div class="summary-item">
+            <span>最近更新</span>
+            <strong id="summaryUpdated">--</strong>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
+          <section class="panel signal-panel">
+            <div class="panel-header">
+              <div>
+                <h2>信号状态</h2>
+                <p>点击标志位可通过 API 写入当前平台状态</p>
+              </div>
+              <button id="refreshButton" class="icon-button" type="button" title="刷新" aria-label="刷新">
+                <span class="icon-refresh" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="signalGroups" class="signal-groups"></div>
+          </section>
+
+          <aside class="side-column">
+            <section class="panel gauges-panel">
+              <div class="panel-header compact">
+                <h2>数值信号</h2>
+              </div>
+              <div id="numericControls" class="numeric-controls"></div>
+            </section>
+
+            <section class="panel frame-panel">
+              <div class="panel-header compact">
+                <h2>TCP 帧</h2>
+                <button id="copyFrameButton" class="text-button" type="button">复制</button>
+              </div>
+              <code id="frameHex" class="frame-hex">--</code>
+            </section>
+          </aside>
+        </section>
+
+        <section class="bottom-grid">
+          <section class="panel fault-panel">
+            <div class="panel-header compact">
+              <h2>故障状态</h2>
+            </div>
+            <div id="faultSignals" class="fault-grid"></div>
+          </section>
+
+          <section class="panel gamepad-panel">
+            <div class="panel-header compact">
+              <h2>手柄调试</h2>
+              <button id="scanGamepadButton" class="text-button" type="button">扫描</button>
+            </div>
+            <div class="gamepad-status">
+              <span id="gamepadName">未检测到手柄</span>
+              <span id="gamepadBindingStatus">未绑定</span>
+            </div>
+            <div class="binding-row">
+              <select id="bindingSignalSelect" aria-label="选择要绑定的信号"></select>
+              <button id="bindButton" class="secondary-button" type="button">绑定下一个按钮/摇杆</button>
+              <button id="clearBindingsButton" class="secondary-button" type="button">清空当前绑定</button>
+            </div>
+            <div class="calibration-row">
+              <button id="calibrateCenterButton" class="secondary-button" type="button">设为中位</button>
+              <button id="calibrateNegativeButton" class="secondary-button" type="button">设为负向极限</button>
+              <button id="calibratePositiveButton" class="secondary-button" type="button">设为正向极限</button>
+              <button id="clearCalibrationButton" class="secondary-button" type="button">清空校准</button>
+            </div>
+            <div class="gamepad-debug">
+              <div>
+                <h3>按钮</h3>
+                <div id="gamepadButtons" class="gamepad-button-grid"></div>
+              </div>
+              <div>
+                <h3>摇杆/扳机</h3>
+                <div id="gamepadAxes" class="axis-grid"></div>
+              </div>
+            </div>
+            <div id="bindingList" class="binding-list"></div>
+          </section>
+
+          <section class="panel log-panel">
+            <div class="panel-header compact">
+              <h2>事件日志</h2>
+              <button id="clearLogButton" class="text-button" type="button">清空</button>
+            </div>
+            <ol id="eventLog" class="event-log"></ol>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

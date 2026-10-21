@@ -1,0 +1,11 @@
+fastapi>=0.136
+uvicorn[standard]>=0.46
+pydantic>=2.13
+PyYAML>=6.0
+pyserial>=3.5
+python-can>=4.6
+cantools>=41.0
+pygame>=2.6
+pytest>=9.0
+httpx>=0.28
+websockets>=15.0

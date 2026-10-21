@@ -1,0 +1,796 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocol_packet_schema.json",
+  "title": "External TCP Protocol Packet Schema",
+  "description": "Binary packet layouts for cloud-cockpit and vehicle-cockpit TCP communication. Custom x-* keys describe byte layouts, offsets, count fields, and BCC rules.",
+  "type": "object",
+  "properties": {
+    "frame": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/frames/vehicleCockpitFrame"
+        },
+        {
+          "$ref": "#/$defs/frames/cloudCockpitFrame"
+        }
+      ]
+    }
+  },
+  "required": [
+    "frame"
+  ],
+  "$defs": {
+    "primitives": {
+      "byte": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255,
+        "x-type": "BYTE",
+        "x-size": 1
+      },
+      "word": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 65535,
+        "x-type": "WORD",
+        "x-size": 2,
+        "x-byteOrder": "bigEndian"
+      },
+      "dword": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295,
+        "x-type": "DWORD",
+        "x-size": 4,
+        "x-byteOrder": "bigEndian"
+      },
+      "double8": {
+        "type": "number",
+        "x-type": "DOUBLE",
+        "x-size": 8,
+        "x-byteOrder": "bigEndian"
+      },
+      "string17": {
+        "type": "string",
+        "minLength": 17,
+        "maxLength": 17,
+        "x-type": "STRING",
+        "x-size": 17,
+        "x-encoding": "ASCII"
+      },
+      "time8": {
+        "type": "object",
+        "description": "Protocol time from table 6: year, month, day, hour, minute, second, millisecond.",
+        "x-type": "BYTE[8]",
+        "x-size": 8,
+        "x-fields": [
+          { "name": "year", "type": "BYTE", "size": 1, "range": [0, 99] },
+          { "name": "month", "type": "BYTE", "size": 1, "range": [1, 12] },
+          { "name": "day", "type": "BYTE", "size": 1, "range": [1, 31] },
+          { "name": "hour", "type": "BYTE", "size": 1, "range": [0, 23] },
+          { "name": "minute", "type": "BYTE", "size": 1, "range": [0, 59] },
+          { "name": "second", "type": "BYTE", "size": 1, "range": [0, 59] },
+          { "name": "millisecond", "type": "WORD", "size": 2, "byteOrder": "bigEndian", "range": [0, 999] }
+        ]
+      },
+      "timestamp8": {
+        "type": "integer",
+        "minimum": 0,
+        "x-type": "BYTE[8]",
+        "x-size": 8,
+        "x-byteOrder": "bigEndian",
+        "description": "Millisecond timestamp used in cloud-cockpit frames."
+      },
+      "bcc": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255,
+        "x-type": "BYTE",
+        "x-size": 1,
+        "x-algorithm": "xor"
+      }
+    },
+    "enums": {
+      "deviceType": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "vehicle" },
+          { "const": 2, "title": "excavator" },
+          { "const": 3, "title": "rsu" },
+          { "const": 5, "title": "cockpit" }
+        ]
+      },
+      "commandId": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "vehicleLogin" },
+          { "const": 2, "title": "realtimeReport" },
+          { "const": 3, "title": "controlRequest" },
+          { "const": 4, "title": "realtimeControl" },
+          { "const": 5, "title": "vehicleCockpitHeartbeat" },
+          { "const": 6, "title": "emergencyStop" },
+          { "const": 7, "title": "surroundingInformation" },
+          { "const": 8, "title": "vehicleLogout" },
+          { "const": 9, "title": "cloudLogin" },
+          { "const": 10, "title": "controllableVehicleListRequest" },
+          { "const": 11, "title": "requestControlVehicle" },
+          { "const": 12, "title": "cloudHeartbeat" },
+          { "const": 13, "title": "cockpitStatusReport" },
+          { "const": 14, "title": "remoteTaskStatus" },
+          { "const": 15, "title": "cloudLogout" },
+          { "const": 16, "title": "faultReport" },
+          { "const": 17, "title": "controllableVehicleListUpdate" },
+          { "const": 18, "title": "controlStatusReport" },
+          { "const": 19, "title": "plannedPathCoordinates" }
+        ]
+      },
+      "responseFlag": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "success" },
+          { "const": 2, "title": "error" },
+          { "const": 254, "title": "command" }
+        ]
+      },
+      "encryption": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "none" },
+          { "const": 2, "title": "rsa" }
+        ]
+      },
+      "cockpitStatus": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 0, "title": "idle" },
+          { "const": 1, "title": "busy" },
+          { "const": 2, "title": "fault" }
+        ]
+      },
+      "drivingState": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "manual" },
+          { "const": 2, "title": "remote" },
+          { "const": 3, "title": "unmanned" }
+        ]
+      },
+      "vehicleWorkMode": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "manual" },
+          { "const": 2, "title": "autonomous" },
+          { "const": 3, "title": "remote" }
+        ]
+      },
+      "vehicleStatus": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 1, "title": "engineOff" },
+          { "const": 2, "title": "poweredOnly" },
+          { "const": 3, "title": "idle" },
+          { "const": 4, "title": "driving" },
+          { "const": 5, "title": "fault" },
+          { "const": 9, "title": "offline" }
+        ]
+      },
+      "faultLevel": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 0, "title": "level0" },
+          { "const": 1, "title": "level1" },
+          { "const": 2, "title": "level2" },
+          { "const": 3, "title": "level3" }
+        ]
+      },
+      "booleanByte": {
+        "type": "integer",
+        "oneOf": [
+          { "const": 0, "title": "false" },
+          { "const": 1, "title": "true" }
+        ]
+      }
+    },
+    "frames": {
+      "vehicleCockpitFrame": {
+        "type": "object",
+        "description": "Vehicle-cockpit TCP frame from protocol table 2.",
+        "additionalProperties": false,
+        "properties": {
+          "start": { "const": "2323" },
+          "commandId": { "$ref": "#/$defs/enums/commandId" },
+          "responseFlag": { "$ref": "#/$defs/enums/responseFlag" },
+          "uniqueId": { "$ref": "#/$defs/primitives/string17" },
+          "encryption": { "$ref": "#/$defs/enums/encryption" },
+          "dataLength": { "$ref": "#/$defs/primitives/word" },
+          "payload": { "$ref": "#/$defs/commands/vehicleCockpitPayload" },
+          "bcc": { "$ref": "#/$defs/primitives/bcc" }
+        },
+        "required": ["start", "commandId", "responseFlag", "uniqueId", "encryption", "dataLength", "payload", "bcc"],
+        "x-layout": [
+          { "name": "start", "offset": 0, "size": 2, "type": "STRING", "fixedHex": "2323" },
+          { "name": "commandId", "offset": 2, "size": 1, "type": "BYTE" },
+          { "name": "responseFlag", "offset": 3, "size": 1, "type": "BYTE" },
+          { "name": "uniqueId", "offset": 4, "size": 17, "type": "STRING", "encoding": "ASCII" },
+          { "name": "encryption", "offset": 21, "size": 1, "type": "BYTE" },
+          { "name": "dataLength", "offset": 22, "size": 2, "type": "WORD", "byteOrder": "bigEndian", "observedLogVariants": ["bigEndian", "littleEndian"], "notes": "The protocol document defines big-endian WORD. 20251208Info.txt also contains vehicle-cockpit frames whose length bytes match little-endian; treat those as compatibility observations, not the normative schema." },
+          { "name": "payload", "offset": 24, "sizeFrom": "dataLength" },
+          { "name": "bcc", "offset": "24 + dataLength", "size": 1, "type": "BYTE" }
+        ],
+        "x-bcc": {
+          "algorithm": "xor",
+          "startOffset": 2,
+          "endOffsetExclusive": "24 + dataLength",
+          "notes": "Encrypt payload before BCC calculation; verify BCC before decrypting payload."
+        }
+      },
+      "cloudCockpitFrame": {
+        "type": "object",
+        "description": "Cloud-cockpit TCP frame from protocol table 3.",
+        "additionalProperties": false,
+        "properties": {
+          "start": { "const": "2323" },
+          "deviceType": { "$ref": "#/$defs/enums/deviceType" },
+          "commandId": { "$ref": "#/$defs/enums/commandId" },
+          "responseFlag": { "$ref": "#/$defs/enums/responseFlag" },
+          "uniqueId": { "$ref": "#/$defs/primitives/string17" },
+          "encryption": { "$ref": "#/$defs/enums/encryption" },
+          "timestamp": { "$ref": "#/$defs/primitives/timestamp8" },
+          "dataLength": { "$ref": "#/$defs/primitives/word" },
+          "payload": { "$ref": "#/$defs/commands/cloudCockpitPayload" },
+          "bcc": { "$ref": "#/$defs/primitives/bcc" }
+        },
+        "required": ["start", "deviceType", "commandId", "responseFlag", "uniqueId", "encryption", "timestamp", "dataLength", "payload", "bcc"],
+        "x-layout": [
+          { "name": "start", "offset": 0, "size": 2, "type": "STRING", "fixedHex": "2323" },
+          { "name": "deviceType", "offset": 2, "size": 1, "type": "BYTE" },
+          { "name": "commandId", "offset": 3, "size": 1, "type": "BYTE" },
+          { "name": "responseFlag", "offset": 4, "size": 1, "type": "BYTE" },
+          { "name": "uniqueId", "offset": 5, "size": 17, "type": "STRING", "encoding": "ASCII" },
+          { "name": "encryption", "offset": 22, "size": 1, "type": "BYTE" },
+          { "name": "timestamp", "offset": 23, "size": 8, "type": "BYTE[8]", "byteOrder": "bigEndian" },
+          { "name": "dataLength", "offset": 31, "size": 2, "type": "WORD", "byteOrder": "bigEndian" },
+          { "name": "payload", "offset": 33, "sizeFrom": "dataLength" },
+          { "name": "bcc", "offset": "33 + dataLength", "size": 1, "type": "BYTE" }
+        ],
+        "x-bcc": {
+          "algorithm": "xor",
+          "startOffset": 3,
+          "endOffsetExclusive": "33 + dataLength",
+          "notes": "The BCC range starts at commandId, not deviceType, matching protocol table 3 wording."
+        }
+      }
+    },
+    "commands": {
+      "vehicleCockpitPayload": {
+        "oneOf": [
+          { "$ref": "#/$defs/commands/cmd01VehicleLoginUp" },
+          { "$ref": "#/$defs/commands/cmd01VehicleLoginResponseDown" },
+          { "$ref": "#/$defs/commands/cmd02RealtimeReportUp" },
+          { "$ref": "#/$defs/commands/cmd03ControlRequestDown" },
+          { "$ref": "#/$defs/commands/cmd03ControlRequestResponseUp" },
+          { "$ref": "#/$defs/commands/cmd04RealtimeControlDown" },
+          { "$ref": "#/$defs/commands/cmd04RealtimeControlResponseUp" },
+          { "$ref": "#/$defs/commands/cmd05VehicleHeartbeatDown" },
+          { "$ref": "#/$defs/commands/cmd05VehicleHeartbeatResponseUp" },
+          { "$ref": "#/$defs/commands/cmd06EmergencyStopDown" },
+          { "$ref": "#/$defs/commands/cmd06EmergencyStopResponseUp" },
+          { "$ref": "#/$defs/commands/cmd07SurroundingInfoUp" },
+          { "$ref": "#/$defs/commands/cmd08VehicleLogoutDown" },
+          { "$ref": "#/$defs/commands/cmd08VehicleLogoutResponseUp" },
+          { "$ref": "#/$defs/commands/cmd13PlannedPathUp" },
+          { "$ref": "#/$defs/commands/cmd13PlannedPathResponseDown" }
+        ]
+      },
+      "cloudCockpitPayload": {
+        "oneOf": [
+          { "$ref": "#/$defs/commands/cmd09CloudLoginUp" },
+          { "$ref": "#/$defs/commands/cmd09CloudLoginResponseDown" },
+          { "$ref": "#/$defs/commands/cmd0AControllableVehicleListRequestUp" },
+          { "$ref": "#/$defs/commands/cmd0AControllableVehicleListResponseDown" },
+          { "$ref": "#/$defs/commands/cmd0BRequestControlVehicleUp" },
+          { "$ref": "#/$defs/commands/cmd0BRequestControlVehicleResponseDown" },
+          { "$ref": "#/$defs/commands/cmd0CCloudHeartbeatUp" },
+          { "$ref": "#/$defs/commands/cmd0CCloudHeartbeatResponseDown" },
+          { "$ref": "#/$defs/commands/cmd0DCockpitStatusReportUp" },
+          { "$ref": "#/$defs/commands/cmd0DCockpitStatusReportResponseDown" },
+          { "$ref": "#/$defs/commands/cmd0ERemoteTaskStatusDown" },
+          { "$ref": "#/$defs/commands/cmd0ERemoteTaskStatusResponseUp" },
+          { "$ref": "#/$defs/commands/cmd0FCloudLogoutUp" },
+          { "$ref": "#/$defs/commands/cmd0FCloudLogoutResponseDown" },
+          { "$ref": "#/$defs/commands/cmd10FaultReportUp" },
+          { "$ref": "#/$defs/commands/cmd10FaultReportResponseDown" },
+          { "$ref": "#/$defs/commands/cmd11ControllableVehicleListUpdateDown" },
+          { "$ref": "#/$defs/commands/cmd11ControllableVehicleListUpdateResponseUp" },
+          { "$ref": "#/$defs/commands/cmd12ControlStatusReportUp" },
+          { "$ref": "#/$defs/commands/cmd12ControlStatusReportResponseDown" }
+        ]
+      },
+      "cmd01VehicleLoginUp": {
+        "type": "object",
+        "title": "0x01 vehicle login upstream",
+        "x-commandId": "0x01",
+        "x-direction": "vehicle-to-cockpit",
+        "x-responseFlag": "0xFE",
+        "x-fixedPayloadLength": 49,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "loginSerial", "offset": 8, "size": 1, "type": "BYTE", "range": [1, 255] },
+          { "name": "iccid", "offset": 9, "size": 20, "type": "STRING", "encoding": "ASCII" },
+          { "name": "hardwareVersion", "offset": 29, "size": 4, "type": "BYTE[4]" },
+          { "name": "softwareVersion", "offset": 33, "size": 4, "type": "BYTE[4]" },
+          { "name": "drivingState", "offset": 37, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/drivingState" },
+          { "name": "gear", "offset": 38, "size": 1, "type": "BYTE", "notes": "Protocol values describe -1=R, 0=N, 1=D." },
+          { "name": "vehicleLengthMm", "offset": 39, "size": 2, "type": "WORD" },
+          { "name": "vehicleWidthMm", "offset": 41, "size": 2, "type": "WORD" },
+          { "name": "cameraHeightMm", "offset": 43, "size": 2, "type": "WORD" },
+          { "name": "frontBlindSpotMm", "offset": 45, "size": 2, "type": "WORD" },
+          { "name": "cameraPitchDeg", "offset": 47, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd01VehicleLoginResponseDown": {
+        "type": "object",
+        "title": "0x01 vehicle login response downstream",
+        "x-commandId": "0x01",
+        "x-direction": "cockpit-to-vehicle",
+        "x-responseFlag": "0x01 or 0x02",
+        "x-fields": [
+          { "name": "responseTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "responseSerial", "offset": 8, "size": 1, "type": "BYTE" },
+          { "name": "loginStatus", "offset": 9, "size": 1, "type": "BYTE", "bitLayout": "bit7 ICCID mismatch, bit6 hardware type mismatch, bit5 hardware version mismatch, bit4 software type mismatch, bit3 software version mismatch, bit2 VIN mismatch" },
+          { "name": "rsaKey", "offset": 10, "size": 915, "type": "BYTE[915]", "optionalWhen": "encryption == 0x01" }
+        ]
+      },
+      "cmd02RealtimeReportUp": {
+        "type": "object",
+        "title": "0x02 realtime report upstream",
+        "x-commandId": "0x02",
+        "x-direction": "vehicle-to-cockpit",
+        "x-responseFlag": "0xFE",
+        "x-fixedPayloadLength": 40,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "speedDeciKmh", "offset": 8, "size": 2, "type": "WORD", "scale": 0.1, "unit": "km/h" },
+          { "name": "headingDeciDeg", "offset": 10, "size": 2, "type": "WORD", "scale": 0.1, "unit": "deg" },
+          { "name": "wheelAngleRaw", "offset": 12, "size": 2, "type": "WORD", "transform": "raw * 0.1 - 40 deg" },
+          { "name": "throttlePercent", "offset": 14, "size": 1, "type": "BYTE", "range": [0, 100] },
+          { "name": "brakePercent", "offset": 15, "size": 1, "type": "BYTE", "range": [0, 100] },
+          { "name": "engineSpeedRaw", "offset": 16, "size": 2, "type": "WORD", "scale": 0.125, "unit": "rpm", "specialValues": { "0xFFFE": "abnormal", "0xFFFF": "invalid" } },
+          { "name": "totalMileageDeciKm", "offset": 18, "size": 4, "type": "DWORD", "scale": 0.1, "unit": "km" },
+          { "name": "tripMileageDeciKm", "offset": 22, "size": 2, "type": "WORD", "scale": 0.1, "unit": "km" },
+          { "name": "pitchRaw", "offset": 24, "size": 2, "type": "WORD", "transform": "raw - 90 deg" },
+          { "name": "gearOperation", "offset": 26, "size": 1, "type": "BYTE" },
+          { "name": "fuelOrBatteryPercent", "offset": 27, "size": 1, "type": "BYTE", "range": [0, 100] },
+          { "name": "waterTemperatureRaw", "offset": 28, "size": 1, "type": "BYTE", "transform": "raw - 50 C", "specialValues": { "0xFE": "abnormal", "0xFF": "invalid" } },
+          { "name": "brakePressure1Raw", "offset": 29, "size": 1, "type": "BYTE", "scale": 0.1 },
+          { "name": "brakePressure2Raw", "offset": 30, "size": 1, "type": "BYTE", "scale": 0.1 },
+          { "name": "leftCombinationSwitch", "offset": 31, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "rightCombinationSwitch", "offset": 32, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "buttonOperation1", "offset": 33, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "buttonOperation2", "offset": 34, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "vehicleState", "offset": 35, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/drivingState" },
+          { "name": "liftReached", "offset": 36, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "lowerReached", "offset": 37, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "faultInfo1", "offset": 38, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "faultInfo2", "offset": 39, "size": 1, "type": "BYTE", "bitField": true }
+        ]
+      },
+      "cmd03ControlRequestDown": {
+        "type": "object",
+        "title": "0x03 control request downstream",
+        "x-commandId": "0x03",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 1, "type": "BYTE", "range": [1, 255] },
+          { "name": "takeoverMode", "offset": 9, "size": 1, "type": "BYTE", "enum": { "0x03": "manual", "0x01": "remoteTakeover", "0x02": "autonomous" } }
+        ]
+      },
+      "cmd03ControlRequestResponseUp": {
+        "type": "object",
+        "title": "0x03 control request response upstream",
+        "x-commandId": "0x03",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "responseTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "responseSerial", "offset": 8, "size": 1, "type": "BYTE" },
+          { "name": "controlState", "offset": 9, "size": 1, "type": "BYTE", "enum": { "0x00": "manual", "0x01": "remote", "0x02": "autonomous" } }
+        ]
+      },
+      "cmd04RealtimeControlDown": {
+        "type": "object",
+        "title": "0x04 realtime control downstream",
+        "x-commandId": "0x04",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 20,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 1, "type": "BYTE", "range": [1, 255] },
+          { "name": "wheelAngleRaw", "offset": 9, "size": 2, "type": "WORD", "transform": "raw * 0.1 - 40 deg" },
+          { "name": "throttlePercent", "offset": 11, "size": 1, "type": "BYTE", "range": [0, 100] },
+          { "name": "brakePercent", "offset": 12, "size": 1, "type": "BYTE", "range": [0, 100] },
+          { "name": "gearOperation", "offset": 13, "size": 1, "type": "BYTE", "enum": { "0x01": "R", "0x02": "N", "0x03": "D", "0x04": "D1", "0x05": "D2", "0x06": "D3", "0x07": "D4", "0x08": "D5" } },
+          { "name": "leftCombinationSwitch", "offset": 14, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "rightCombinationSwitch", "offset": 15, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "buttonOperation1", "offset": 16, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "buttonOperation2", "offset": 17, "size": 1, "type": "BYTE", "bitField": true },
+          { "name": "clearSafetyFault", "offset": 18, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "enableSafetyProtection", "offset": 19, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" }
+        ]
+      },
+      "cmd04RealtimeControlResponseUp": {
+        "type": "object",
+        "title": "0x04 realtime control response upstream",
+        "x-commandId": "0x04",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fixedPayloadLength": 9,
+        "x-fields": [
+          { "name": "responseTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "responseSerial", "offset": 8, "size": 1, "type": "BYTE" }
+        ]
+      },
+      "cmd05VehicleHeartbeatDown": {
+        "type": "object",
+        "title": "0x05 vehicle-cockpit heartbeat downstream",
+        "x-commandId": "0x05",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd05VehicleHeartbeatResponseUp": {
+        "type": "object",
+        "title": "0x05 vehicle-cockpit heartbeat response upstream",
+        "x-commandId": "0x05",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd06EmergencyStopDown": {
+        "type": "object",
+        "title": "0x06 emergency stop downstream",
+        "x-commandId": "0x06",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 1, "type": "BYTE", "range": [1, 255] },
+          { "name": "emergencyStop", "offset": 9, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" }
+        ]
+      },
+      "cmd06EmergencyStopResponseUp": {
+        "type": "object",
+        "title": "0x06 emergency stop response upstream",
+        "x-commandId": "0x06",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fixedPayloadLength": 9,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "commandSerial", "offset": 8, "size": 1, "type": "BYTE" }
+        ]
+      },
+      "cmd07SurroundingInfoUp": {
+        "type": "object",
+        "title": "0x07 surrounding information upstream",
+        "x-commandId": "0x07",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "longitude", "offset": 8, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -180 },
+          { "name": "latitude", "offset": 12, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -90 },
+          { "name": "obstacleCount", "offset": 16, "size": 2, "type": "WORD" },
+          { "name": "obstacles", "offset": 18, "countField": "obstacleCount", "itemSize": 9, "itemSchema": "#/$defs/items/obstacle" },
+          { "name": "v2vVehicleCount", "offset": "18 + obstacleCount * 9", "size": 2, "type": "WORD" },
+          { "name": "v2vVehicles", "offset": "20 + obstacleCount * 9", "countField": "v2vVehicleCount", "itemSize": 11, "itemSchema": "#/$defs/items/v2vVehicle" }
+        ]
+      },
+      "cmd08VehicleLogoutDown": {
+        "type": "object",
+        "title": "0x08 vehicle logout downstream",
+        "x-commandId": "0x08",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 10,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "logoutSerial", "offset": 8, "size": 1, "type": "BYTE" },
+          { "name": "logoutType", "offset": 9, "size": 1, "type": "BYTE", "enum": { "0x01": "active", "0x02": "passive" } }
+        ]
+      },
+      "cmd08VehicleLogoutResponseUp": {
+        "type": "object",
+        "title": "0x08 vehicle logout response upstream",
+        "x-commandId": "0x08",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fixedPayloadLength": 8,
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" }
+        ]
+      },
+      "cmd09CloudLoginUp": {
+        "type": "object",
+        "title": "0x09 cloud login upstream",
+        "x-commandId": "0x09",
+        "x-direction": "cockpit-to-cloud",
+        "x-fields": [
+          { "name": "loginSerial", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "cockpitIp", "offset": 2, "size": 15, "type": "STRING", "encoding": "ASCII" },
+          { "name": "cockpitPort", "offset": 17, "size": 2, "type": "WORD" },
+          { "name": "hardwareVersion", "offset": 19, "size": 4, "type": "BYTE[4]" },
+          { "name": "softwareVersion", "offset": 23, "size": 4, "type": "BYTE[4]" },
+          { "name": "cockpitStatus", "offset": 27, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/cockpitStatus" },
+          { "name": "bearerToken", "offset": 28, "type": "STRING", "sizeFrom": "dataLength - 28", "encoding": "ASCII" }
+        ]
+      },
+      "cmd09CloudLoginResponseDown": {
+        "type": "object",
+        "title": "0x09 cloud login response downstream",
+        "x-commandId": "0x09",
+        "x-direction": "cloud-to-cockpit",
+        "x-fields": [
+          { "name": "loginSerial", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "roadMapVersion", "offset": 2, "size": 32, "type": "STRING", "encoding": "ASCII", "optionalInSomeBuilds": true },
+          { "name": "areaMapVersion", "offset": 34, "size": 32, "type": "STRING", "encoding": "ASCII", "optionalInSomeBuilds": true }
+        ]
+      },
+      "cmd0AControllableVehicleListRequestUp": {
+        "type": "object",
+        "title": "0x0A controllable vehicle list request upstream",
+        "x-commandId": "0x0A",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 2,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd0AControllableVehicleListResponseDown": {
+        "type": "object",
+        "title": "0x0A controllable vehicle list response downstream",
+        "x-commandId": "0x0A",
+        "x-direction": "cloud-to-cockpit",
+        "x-fields": [
+          { "name": "vehicleCount", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "vehicles", "offset": 2, "countField": "vehicleCount", "itemSize": 25, "itemSchema": "#/$defs/items/controllableVehicle" }
+        ]
+      },
+      "cmd0BRequestControlVehicleUp": {
+        "type": "object",
+        "title": "0x0B request control vehicle upstream",
+        "x-commandId": "0x0B",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 17,
+        "x-fields": [
+          { "name": "vehicleVin", "offset": 0, "size": 17, "type": "STRING", "encoding": "ASCII" }
+        ]
+      },
+      "cmd0BRequestControlVehicleResponseDown": {
+        "type": "object",
+        "title": "0x0B request control vehicle response downstream",
+        "x-commandId": "0x0B",
+        "x-direction": "cloud-to-cockpit",
+        "x-fields": [
+          { "name": "vehicleControllable", "offset": 0, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "tokenStatus", "offset": 1, "size": 1, "type": "BYTE", "enum": { "0x01": "valid", "0x00": "invalid" } },
+          { "name": "roadMapVersion", "offset": 2, "size": 32, "type": "STRING", "encoding": "ASCII", "optionalInSomeBuilds": true },
+          { "name": "areaMapVersion", "offset": 34, "size": 32, "type": "STRING", "encoding": "ASCII", "optionalInSomeBuilds": true }
+        ]
+      },
+      "cmd0CCloudHeartbeatUp": {
+        "type": "object",
+        "title": "0x0C cloud heartbeat upstream",
+        "x-commandId": "0x0C",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 2,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd0CCloudHeartbeatResponseDown": {
+        "type": "object",
+        "title": "0x0C cloud heartbeat response downstream",
+        "x-commandId": "0x0C",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 2,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd0DCockpitStatusReportUp": {
+        "type": "object",
+        "title": "0x0D cockpit status report upstream",
+        "x-commandId": "0x0D",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 1,
+        "x-fields": [
+          { "name": "cockpitStatus", "offset": 0, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/cockpitStatus" }
+        ]
+      },
+      "cmd0DCockpitStatusReportResponseDown": {
+        "type": "object",
+        "title": "0x0D cockpit status report response downstream",
+        "x-commandId": "0x0D",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 0,
+        "x-payloadLength": 0,
+        "x-fields": []
+      },
+      "cmd0ERemoteTaskStatusDown": {
+        "type": "object",
+        "title": "0x0E remote task status downstream",
+        "x-commandId": "0x0E",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 3,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "remoteTaskStatus", "offset": 2, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" }
+        ]
+      },
+      "cmd0ERemoteTaskStatusResponseUp": {
+        "type": "object",
+        "title": "0x0E remote task status response upstream",
+        "x-commandId": "0x0E",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 2,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd0FCloudLogoutUp": {
+        "type": "object",
+        "title": "0x0F cloud logout upstream",
+        "x-commandId": "0x0F",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 3,
+        "x-fields": [
+          { "name": "logoutSerial", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "logoutType", "offset": 2, "size": 1, "type": "BYTE", "enum": { "0x01": "active", "0x02": "passive" } }
+        ]
+      },
+      "cmd0FCloudLogoutResponseDown": {
+        "type": "object",
+        "title": "0x0F cloud logout response downstream",
+        "x-commandId": "0x0F",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 0,
+        "x-payloadLength": 0,
+        "x-fields": []
+      },
+      "cmd10FaultReportUp": {
+        "type": "object",
+        "title": "0x10 cockpit fault report upstream",
+        "x-commandId": "0x10",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 16,
+        "x-fields": [
+          { "name": "faultTimestamp", "offset": 0, "size": 8, "type": "DOUBLE", "ref": "#/$defs/primitives/double8" },
+          { "name": "moduleName", "offset": 8, "size": 1, "type": "BYTE", "protocolValue": 32 },
+          { "name": "faultLevel", "offset": 9, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/faultLevel" },
+          { "name": "handlingAction", "offset": 10, "size": 1, "type": "BYTE" },
+          { "name": "faultState", "offset": 11, "size": 1, "type": "BYTE", "enum": { "0x01": "generated", "0x00": "cleared" } },
+          { "name": "faultCode", "offset": 12, "size": 4, "type": "DWORD" }
+        ]
+      },
+      "cmd10FaultReportResponseDown": {
+        "type": "object",
+        "title": "0x10 cockpit fault report response downstream",
+        "x-commandId": "0x10",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 0,
+        "x-payloadLength": 0,
+        "x-fields": []
+      },
+      "cmd11ControllableVehicleListUpdateDown": {
+        "type": "object",
+        "title": "0x11 controllable vehicle list update downstream",
+        "x-commandId": "0x11",
+        "x-direction": "cloud-to-cockpit",
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" },
+          { "name": "vehicleCount", "offset": 2, "size": 2, "type": "WORD" },
+          { "name": "vehicles", "offset": 4, "countField": "vehicleCount", "itemSize": 25, "itemSchema": "#/$defs/items/controllableVehicle" }
+        ]
+      },
+      "cmd11ControllableVehicleListUpdateResponseUp": {
+        "type": "object",
+        "title": "0x11 controllable vehicle list update response upstream",
+        "x-commandId": "0x11",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 2,
+        "x-fields": [
+          { "name": "commandSerial", "offset": 0, "size": 2, "type": "WORD" }
+        ]
+      },
+      "cmd12ControlStatusReportUp": {
+        "type": "object",
+        "title": "0x12 control status report upstream",
+        "x-commandId": "0x12",
+        "x-direction": "cockpit-to-cloud",
+        "x-fixedPayloadLength": 1,
+        "x-fields": [
+          { "name": "controlStatus", "offset": 0, "size": 1, "type": "BYTE", "enum": { "0x00": "inProgress", "0x01": "ended" } }
+        ]
+      },
+      "cmd12ControlStatusReportResponseDown": {
+        "type": "object",
+        "title": "0x12 control status report response downstream",
+        "x-commandId": "0x12",
+        "x-direction": "cloud-to-cockpit",
+        "x-fixedPayloadLength": 0,
+        "x-payloadLength": 0,
+        "x-fields": []
+      },
+      "cmd13PlannedPathUp": {
+        "type": "object",
+        "title": "0x13 planned path coordinates upstream",
+        "x-commandId": "0x13",
+        "x-direction": "vehicle-to-cockpit",
+        "x-fields": [
+          { "name": "commandTime", "offset": 0, "size": 8, "type": "BYTE[8]", "ref": "#/$defs/primitives/time8" },
+          { "name": "planningSuccess", "offset": 8, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "pointCount", "offset": 9, "size": 2, "type": "WORD" },
+          { "name": "points", "offset": 11, "countField": "pointCount", "itemSize": 8, "itemSchema": "#/$defs/items/coordinatePoint" }
+        ]
+      },
+      "cmd13PlannedPathResponseDown": {
+        "type": "object",
+        "title": "0x13 planned path response downstream",
+        "x-commandId": "0x13",
+        "x-direction": "cockpit-to-vehicle",
+        "x-fixedPayloadLength": 0,
+        "x-payloadLength": 0,
+        "x-fields": []
+      }
+    },
+    "items": {
+      "controllableVehicle": {
+        "type": "object",
+        "x-itemSize": 25,
+        "x-fields": [
+          { "name": "vin", "offset": 0, "size": 17, "type": "STRING", "encoding": "ASCII" },
+          { "name": "urgency", "offset": 17, "size": 1, "type": "BYTE", "enum": { "0x00": "none", "0x01": "normalAccident", "0x02": "affectsOtherVehicles", "0x03": "mayWorsen", "0x04": "highestDanger" } },
+          { "name": "isDefault", "offset": 18, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/booleanByte" },
+          { "name": "vehicleNo", "offset": 19, "size": 2, "type": "WORD" },
+          { "name": "vehicleType", "offset": 21, "size": 1, "type": "BYTE", "enum": { "0x00": "fuel", "0x01": "electric" } },
+          { "name": "workMode", "offset": 22, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/vehicleWorkMode" },
+          { "name": "status", "offset": 23, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/vehicleStatus" },
+          { "name": "faultLevel", "offset": 24, "size": 1, "type": "BYTE", "enumRef": "#/$defs/enums/faultLevel" }
+        ]
+      },
+      "obstacle": {
+        "type": "object",
+        "x-itemSize": 9,
+        "x-fields": [
+          { "name": "type", "offset": 0, "size": 1, "type": "BYTE" },
+          { "name": "widthCm", "offset": 1, "size": 2, "type": "WORD" },
+          { "name": "lengthCm", "offset": 3, "size": 2, "type": "WORD" },
+          { "name": "relativeLongitudinalDistanceCm", "offset": 5, "size": 2, "type": "WORD" },
+          { "name": "relativeLateralDistanceCm", "offset": 7, "size": 2, "type": "WORD", "signed": true }
+        ]
+      },
+      "v2vVehicle": {
+        "type": "object",
+        "x-itemSize": 11,
+        "x-fields": [
+          { "name": "type", "offset": 0, "size": 1, "type": "BYTE", "enum": { "0x00": "mineTruck", "0x01": "excavator", "0x02": "rsu", "0x03": "loader", "0x04": "sprinkler", "0x05": "commandVehicle", "0x06": "grader", "0x07": "bulldozer", "0x08": "other" } },
+          { "name": "longitude", "offset": 1, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -180 },
+          { "name": "latitude", "offset": 5, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -90 },
+          { "name": "headingDeciDeg", "offset": 9, "size": 2, "type": "WORD", "scale": 0.1, "unit": "deg" }
+        ]
+      },
+      "coordinatePoint": {
+        "type": "object",
+        "x-itemSize": 8,
+        "x-fields": [
+          { "name": "longitude", "offset": 0, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -180 },
+          { "name": "latitude", "offset": 4, "size": 4, "type": "DWORD", "scale": 0.0000001, "offsetDegrees": -90 }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "hil": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 2000,
+    "version": 12,
+    "poll_interval": 0.05,
+    "reconnect_interval": 1.0,
+    "socket_timeout": 1.0,
+    "steering_endian": "little"
+  },
+  "vehicle_output": {
+    "enabled": true,
+    "url": "http://127.0.0.1:18081/__vehicle/realtime_report",
+    "publish_interval": 0.2,
+    "request_timeout": 0.5,
+    "vin": "SYZKRMCAB25090501",
+    "steering_ratio": 12.0,
+    "defaults": {
+      "fuel_or_battery_percent": 89,
+      "water_temperature_raw": 74,
+      "brake_pressure1_raw": 0,
+      "brake_pressure2_raw": 0,
+      "driving_state": 2,
+      "lift_reached": 0,
+      "lower_reached": 0
+    }
+  }
+}

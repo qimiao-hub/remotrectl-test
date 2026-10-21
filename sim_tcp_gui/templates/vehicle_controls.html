@@ -1,0 +1,233 @@
+{% extends "layout.html" %}
+{% block body %}
+<main class="app-shell">
+    <section class="workspace" id="workspace">
+        <aside class="panel controls-panel" id="controlsPanel">
+            <div class="panel-title">
+                <h2>控制面板</h2>
+                <div class="title-actions">
+                    <button class="icon-button" id="pauseButton" type="button" title="暂停/继续">II</button>
+                    <button class="icon-button" id="toggleLeftPanel" type="button" title="折叠左侧">‹</button>
+                </div>
+            </div>
+
+            <details class="control-input collapsible-section" open>
+                <summary><span>控制输入</span></summary>
+                <div class="collapsible-body">
+            <label class="range-control">
+                <span>油门 <b id="throttleValue">0%</b></span>
+                <input id="throttle" type="range" min="0" max="100" step="1" value="0">
+            </label>
+            <label class="range-control">
+                <span>刹车 <b id="brakeValue">0%</b></span>
+                <input id="brake" type="range" min="0" max="100" step="1" value="0">
+            </label>
+            <label class="range-control">
+                <span>转向 <b id="steeringValue">0°</b></span>
+                <input id="steering" type="range" min="-600" max="600" step="1" value="0">
+            </label>
+
+            <div class="field-group">
+                <span>档位</span>
+                <div class="segmented" id="gearButtons">
+                    <button type="button" data-gear="park">P</button>
+                    <button type="button" data-gear="reverse">R</button>
+                    <button type="button" data-gear="neutral">N</button>
+                    <button class="active" type="button" data-gear="drive">D</button>
+                    <button type="button" data-gear="first">1</button>
+                    <button type="button" data-gear="second">2</button>
+                    <button type="button" data-gear="third">3</button>
+                </div>
+            </div>
+
+            <div class="switch-row">
+                <label><input id="parkingBrake" type="checkbox"> 驻车制动</label>
+                <label><input id="ignition" type="checkbox" checked> 点火</label>
+            </div>
+
+            <div class="field-grid">
+                <label>纬度 <input id="latitudeInput" type="number" step="0.000001"></label>
+                <label>经度 <input id="longitudeInput" type="number" step="0.000001"></label>
+                <label>航向 ° <input id="headingInput" type="number" min="0" max="359.999" step="0.1" value="0"></label>
+            </div>
+            <button class="primary-button" id="applyGps" type="button">更新 GPS 起点和航向</button>
+                </div>
+            </details>
+
+            <details class="response-config collapsible-section">
+                <summary><span>速度响应</span></summary>
+                <div class="collapsible-body">
+                <label class="range-control compact">
+                    <span>发动机力 <b id="engineForceValue">6.8</b></span>
+                    <input id="engineForce" type="range" min="1" max="20" step="0.1">
+                </label>
+                <label class="range-control compact">
+                    <span>刹车力 <b id="brakeForceValue">12.0</b></span>
+                    <input id="brakeForce" type="range" min="1" max="30" step="0.1">
+                </label>
+                <label class="range-control compact">
+                    <span>滚阻基础 <b id="rollingBaseValue">0.18</b></span>
+                    <input id="rollingBase" type="range" min="0" max="2" step="0.01">
+                </label>
+                <label class="range-control compact">
+                    <span>滚阻速度 <b id="rollingSpeedValue">0.016</b></span>
+                    <input id="rollingSpeed" type="range" min="0" max="0.12" step="0.001">
+                </label>
+                <label class="range-control compact">
+                    <span>空气阻力 <b id="aeroDragValue">0.0045</b></span>
+                    <input id="aeroDrag" type="range" min="0" max="0.03" step="0.0005">
+                </label>
+                <label class="range-control compact">
+                    <span>最大转速 <b id="maxRpmValue">6200</b></span>
+                    <input id="maxRpm" type="range" min="3000" max="12000" step="100">
+                </label>
+                </div>
+            </details>
+        </aside>
+
+        <section class="field-view">
+            <div class="canvas-toolbar">
+                <div>
+                    <h2>高程地图</h2>
+                    <p id="mapLabel">车辆居中 · 地图跟随</p>
+                </div>
+                <div class="mini-stats">
+                    <button id="editMapToggle" type="button">编辑地图</button>
+                    <span><b id="clientCount">0</b> TCP 客户端</span>
+                    <span id="pausedState">运行中</span>
+                </div>
+            </div>
+            <div id="mapView" class="map-view">
+                <div id="gridOverlay" class="grid-overlay" aria-hidden="true"></div>
+                <div id="objectOverlay" class="object-overlay"></div>
+                <div id="vehicleMarker" class="vehicle-marker" aria-hidden="true">
+                    <svg viewBox="0 0 64 92" role="img">
+                        <path class="car-shadow" d="M16 84h32l8-34L32 4 8 50z"/>
+                        <path class="car-body" d="M32 3 56 49 48 84H16L8 49 32 3z"/>
+                        <path class="car-cabin" d="M32 18 43 48H21L32 18z"/>
+                        <path class="car-rear" d="M18 73h28"/>
+                    </svg>
+                </div>
+                <div class="legend">
+                    <span>低</span>
+                    <div></div>
+                    <span>高</span>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel telemetry-panel" id="telemetryPanel">
+            <div class="panel-title">
+                <h2>车辆状态</h2>
+                <button class="icon-button" id="toggleRightPanel" type="button" title="折叠右侧">›</button>
+            </div>
+            <details class="vehicle-status collapsible-section" open>
+                <summary><span>车辆状态</span></summary>
+                <div class="collapsible-body">
+                    <div class="speed-readout">
+                        <strong id="speed">0.0</strong>
+                        <span>km/h</span>
+                    </div>
+                    <div class="status-grid">
+                        <div><span>发动机</span><b id="rpm">0 rpm</b></div>
+                        <div><span>俯仰</span><b id="pitch">0.0°</b></div>
+                        <div><span>航向</span><b id="heading">0°</b></div>
+                        <div><span>坡度</span><b id="grade">0.0°</b></div>
+                        <div><span>高程</span><b id="elevation">0.0 m</b></div>
+                        <div><span>坐标</span><b id="localPosition">0, 0</b></div>
+                        <div><span>纬度</span><b id="lat">0</b></div>
+                        <div><span>经度</span><b id="lon">0</b></div>
+                    </div>
+                </div>
+            </details>
+
+            <details class="elevation-editor collapsible-section" open>
+                <summary>
+                    <span>高程编辑</span>
+                    <button id="resetMap" type="button">重置</button>
+                </summary>
+                <div class="collapsible-body">
+                <div class="map-settings">
+                    <label>宽度 m <input id="mapWidth" type="number" min="50" max="5000" step="50" value="1000"></label>
+                    <label>高度 m <input id="mapHeight" type="number" min="50" max="5000" step="50" value="1000"></label>
+                    <label>分辨率 m/格 <input id="mapResolution" type="number" min="1" max="50" step="0.5" value="5"></label>
+                    <label>基准高程 m <input id="baseElevation" type="number" min="-200" max="500" step="1" value="30"></label>
+                    <label>中心纬度 <input id="centerLatitude" type="number" min="-89.999999" max="89.999999" step="0.000001"></label>
+                    <label>中心经度 <input id="centerLongitude" type="number" min="-180" max="180" step="0.000001"></label>
+                    <button id="applyMapSettings" type="button">应用并保存</button>
+                </div>
+                <div class="edit-actions" id="editAction">
+                    <button class="active" type="button" data-action="brush">高程画笔</button>
+                    <button type="button" data-action="object">添加对象</button>
+                </div>
+                <div class="mode-grid" id="brushMode">
+                    <button class="active" type="button" data-mode="raise">抬高</button>
+                    <button type="button" data-mode="lower">降低</button>
+                    <button type="button" data-mode="smooth">平滑</button>
+                    <button type="button" data-mode="flatten">整平</button>
+                </div>
+                <label class="range-control compact">
+                    <span>画笔半径 <b id="brushRadiusValue">35 m</b></span>
+                    <input id="brushRadius" type="range" min="5" max="180" step="5" value="35">
+                </label>
+                <label class="range-control compact">
+                    <span>强度 <b id="brushStrengthValue">2.0 m</b></span>
+                    <input id="brushStrength" type="range" min="0.1" max="12" step="0.1" value="2">
+                </label>
+                <div class="file-actions">
+                    <button id="exportMap" type="button">导出 JSON</button>
+                    <button id="importMapButton" type="button">导入 JSON</button>
+                    <input id="importMapFile" type="file" accept="application/json,.json">
+                </div>
+                <div class="object-editor">
+                    <div class="object-type-menu" id="objectTypeMenu">
+                        <details class="type-group" data-category="obstacle" open>
+                            <summary>障碍物</summary>
+                            <div class="type-options">
+                                <button class="active" type="button" data-category="obstacle" data-subtype="cone">锥桶</button>
+                                <button type="button" data-category="obstacle" data-subtype="barrier">路障</button>
+                                <button type="button" data-category="obstacle" data-subtype="pedestrian">行人</button>
+                            </div>
+                        </details>
+                        <details class="type-group" data-category="v2v">
+                            <summary>V2V</summary>
+                            <div class="type-options">
+                                <button type="button" data-category="v2v" data-subtype="car">轿车</button>
+                                <button type="button" data-category="v2v" data-subtype="truck">货车</button>
+                                <button type="button" data-category="v2v" data-subtype="bus">公交</button>
+                            </div>
+                        </details>
+                    </div>
+                    <div class="object-row object-select-row">
+                        <label>类别
+                            <select id="objectCategory">
+                                <option value="obstacle">障碍物</option>
+                                <option value="v2v">V2V</option>
+                            </select>
+                        </label>
+                        <label>类型
+                            <select id="objectSubtype"></select>
+                        </label>
+                    </div>
+                    <div class="object-row">
+                        <label>纬度 <input id="objectLatitude" type="number" step="0.000001"></label>
+                        <label>经度 <input id="objectLongitude" type="number" step="0.000001"></label>
+                        <label>航向 ° <input id="objectHeading" type="number" min="0" max="359.999" step="0.1" value="0"></label>
+                    </div>
+                    <div class="file-actions">
+                        <button id="updateObject" type="button">更新对象</button>
+                        <button id="deleteObject" type="button">删除对象</button>
+                    </div>
+                </div>
+                <p class="hint">在地图上点击或拖拽即可修改对应位置高程。</p>
+                </div>
+            </details>
+
+            <div class="messages">
+                <h3>最近 TCP 输入</h3>
+                <pre id="tcpMessages">等待连接...</pre>
+            </div>
+        </aside>
+    </section>
+</main>
+{% endblock %}

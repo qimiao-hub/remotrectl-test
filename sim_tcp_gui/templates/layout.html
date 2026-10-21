@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>车辆 TCP 仿真工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/openlayers/ol.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        window.SIM_CONFIG = {
+            apiRoot: "",
+            tcpHost: "{{ local_ip }}",
+            tcpPort: {{ tcp_port }}
+        };
+    </script>
+</head>
+<body>
+    {% block body %}{% endblock %}
+    <script src="{{ url_for('static', filename='vendor/openlayers/ol.js') }}"></script>
+    <script src="{{ url_for('static', filename='simulator_scripts.js') }}"></script>
+</body>
+</html>
