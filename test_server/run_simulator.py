@@ -12,6 +12,7 @@ import uvicorn
 from cloud_server import apply_overrides as apply_cloud_overrides
 from cloud_server import build_push_frame, create_app
 from vehicle_client import VehicleClient, find_vehicle
+from native_vehicle import run_native_vehicle
 
 
 def load_config(path: str) -> dict[str, Any]:
@@ -74,6 +75,7 @@ async def vehicle_runner(
     running: dict[str, asyncio.Task],
     vin: str,
 ) -> None:
+    """按配置启动 Python 模拟车或原生 remotectl；原生后端仅允许一个 VIN 占用共享 DDS 车辆模型。"""
     if not vin:
         print("控制事件没有 VIN，无法启动车端")
         return
@@ -89,10 +91,22 @@ async def vehicle_runner(
         return
 
     host, port = cockpit_endpoint(config, args)
-    client = VehicleClient(config, vehicle, vehicle_args(config, args))
-    task = asyncio.create_task(client.run_forever(host, port), name=f"vehicle-{vin}")
+    if config.get("vehicle_backend") == "remotectl-dds":
+        if any(not active.done() for active in running.values()):
+            print("单车 DDS 仿真器正在服务其他 VIN，请先结束当前控车", flush=True)
+            return
+        task = asyncio.create_task(run_native_vehicle(config, vehicle), name=f"vehicle-{vin}")
+    else:
+        client = VehicleClient(config, vehicle, vehicle_args(config, args))
+        task = asyncio.create_task(client.run_forever(host, port), name=f"vehicle-{vin}")
     running[vin] = task
-    task.add_done_callback(lambda done_task: running.pop(vin, None) if running.get(vin) is done_task else None)
+
+    def remove_completed(done_task: asyncio.Task) -> None:
+        """仅清除当前 VIN 的同一任务，避免旧任务回调移除新启动的会话。"""
+        if running.get(vin) is done_task:
+            running.pop(vin, None)
+
+    task.add_done_callback(remove_completed)
     task.add_done_callback(log_task_failure)
     print(f"已触发车端 {vin} 连接驾驶舱 {host}:{port}")
 
@@ -104,6 +118,7 @@ async def vehicle_runner(
 
 
 async def control_event_loop(app, config: dict[str, Any], args: argparse.Namespace) -> None:
+    """消费舱云控车请求及状态；原生后端在 0x12 ended(1) 时结束进程，服务退出时回收全部会话。"""
     state = app.state.sim_state
     running: dict[str, asyncio.Task] = {}
     pending_vin = args.vehicle or ""
@@ -120,6 +135,12 @@ async def control_event_loop(app, config: dict[str, Any], args: argparse.Namespa
             elif event_type == "control_status":
                 pending_vin = vin or pending_vin
                 print(f"收到 0x12 控车状态上报 vin={pending_vin} status={event.get('control_status')}")
+                if config.get("vehicle_backend") == "remotectl-dds" and event.get("control_status") == 1:
+                    task = running.get(pending_vin)
+                    if task:
+                        task.cancel()
+                        await asyncio.gather(task, return_exceptions=True)
+                    continue
                 if args.vehicle_trigger == "control-status":
                     await vehicle_runner(app, config, args, running, pending_vin)
     finally:

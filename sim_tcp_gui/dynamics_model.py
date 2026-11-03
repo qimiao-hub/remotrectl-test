@@ -39,6 +39,14 @@ OBJECT_TYPES = {
 }
 
 
+def local_coordinates_to_gps(x_m, y_m, center_latitude, center_longitude):
+    """按模拟器既有平面地图比例把东/北米坐标转换为经纬度，供动力学和相对 V2V 共用。"""
+    latitude = center_latitude + float(y_m) / 111_320.0
+    meters_per_lon = max(111_320.0 * math.cos(math.radians(center_latitude)), 1.0)
+    longitude = center_longitude + float(x_m) / meters_per_lon
+    return latitude, longitude
+
+
 class ElevationMap(object):
     def __init__(self, width=200, height=200, resolution_m=5.0, base_elevation_m=30.0):
         self.width = int(width)
@@ -139,10 +147,8 @@ class ElevationMap(object):
         return x_m, y_m
 
     def local_to_gps(self, x_m, y_m):
-        latitude = self.center_latitude + (float(y_m) / 111_320.0)
-        meters_per_lon = max(111_320.0 * math.cos(math.radians(self.center_latitude)), 1.0)
-        longitude = self.center_longitude + (float(x_m) / meters_per_lon)
-        return latitude, longitude
+        """将本地图东/北米坐标转换为经纬度，保持原地图比例和经度极区保护。"""
+        return local_coordinates_to_gps(x_m, y_m, self.center_latitude, self.center_longitude)
 
     def add_object(self, payload):
         item = self._normalize_object(payload, new_id=True)

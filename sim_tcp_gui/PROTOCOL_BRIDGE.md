@@ -1,6 +1,8 @@
 # HIL 到车端协议桥
 
-`sim_tcp_gui` 启动时会自动完成下面的数据流：
+当前默认链路已改为 DDS，见 [DDS 与 remotectl 对接说明](DDS_REMOTECTL.md)。本文保留旧 HTTP 桥的使用说明；使用该链路时，将 `dds_output.enabled` 设为 `false`，`vehicle_output.enabled` 设为 `true`。
+
+启用旧 HTTP 桥后，`sim_tcp_gui` 启动时完成下面的数据流：
 
 ```text
 hil_project TCP :2000

@@ -4,7 +4,7 @@ Python/FastAPI interface platform for the TCP protocol in `TCP??????.md`.
 
 ## Features
 
-- TCP server for the 14-byte protocol frame.
+- TCP server with runtime output selection: T1 (14 bytes) and T1-3 (15 bytes).
 - REST API for reading and updating signal state.
 - WebSocket stream for state and hardware events.
 - Serial raw passthrough adapter.
@@ -98,7 +98,7 @@ Example state update:
 
 ## TCP Protocol
 
-Frame length is 14 bytes:
+Default output is **T1**, 14 bytes. The **TCP 输出协议** dropdown in the TCP frame panel switches the running server between **T1** and **T1-3**. Connect the webpage first; subsequent TCP responses use the selected format without reconnecting the TCP client. Existing client software must support the selected response length.
 
 - byte 0: version, default `0x0C`
 - byte 1: message type, `0x00` read or `0xFF` write
@@ -106,4 +106,22 @@ Frame length is 14 bytes:
 - byte 3: message length
 - bytes 4-13: packed signal data
 
-Read requests return the current complete frame. Write requests parse the 10-byte data payload, update state, then return the current complete frame.
+**T1-3** keeps the existing fields and appends an independent `Brake2` byte at offset **14** (the fifteenth byte). Like `Brake`, it is unsigned, 0–100%, precision 1, initially 0. It does not copy or change `Brake` at offset 12; the fault byte remains at offset 13. Total length is 15 (`0x0F`), payload length 11 (`0x0B`); default T1 remains total 14 (`0x0E`), payload 10 (`0x0A`). Header version remains `0x0C`.
+
+Choosing T1-3 shows the **扩展通道（T1-3） / Brake2** slider and numeric input, including optional gamepad binding. Returning to T1 hides this control and omits its byte while preserving its value for the next switch. Frame preview uses the same encoder and selected protocol as real TCP responses. A switch is global to the server, and connected webpages receive a WebSocket event to stay synchronized.
+
+Read requests return the current complete selected output frame. Incoming T1 and T1-3 write frames are accepted independently of the selected output protocol; T1 writes do not reset `Brake2`. Both total-length and payload-length request conventions remain supported; responses retain the request's convention and adjust its length to the selected output protocol. There is no unsolicited TCP push: selection changes the next response to a client request.
+
+`GET /api/v1/tcp/protocol` returns the current protocol and frame lengths. Switch with `PATCH /api/v1/tcp/protocol`:
+
+```json
+{"protocol":"T1-3"}
+```
+
+Write independent channel values with the existing `PATCH /api/v1/state`:
+
+```json
+{"source":"api","signals":{"Brake":20,"Brake2":70}}
+```
+
+Runtime selection is not written back to YAML. Configure the startup choice using `tcp.protocol: T1` (default) or `tcp.protocol: T1-3`. Restart a source-run HIL service to load these code changes; prebuilt executables need a separate rebuild and are not updated by editing source files.

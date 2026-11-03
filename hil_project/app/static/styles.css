@@ -31,7 +31,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -556,6 +557,31 @@ input[type="range"] {
 .numeric-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.protocol-control {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.protocol-control select {
+  width: 100%;
+  min-height: 36px;
+}
+
+.protocol-control select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.protocol-info {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .frame-hex {

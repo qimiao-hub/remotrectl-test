@@ -54,6 +54,28 @@
                 </div>
             </details>
 
+            <details class="collapsible-section" open>
+                <summary><span>驾驶模式与制动气压</span></summary>
+                <form class="collapsible-body feedback-form" id="vehicleFeedbackForm">
+                    <label for="feedbackMode">未接管时的驾驶模式</label>
+                    <select id="feedbackMode" name="mode">
+                        <option value="follow">跟随遥控状态</option>
+                        <option value="manual">人工模式</option>
+                        <option value="auto">自动模式</option>
+                        <option value="remote">遥控模式</option>
+                    </select>
+                    <p class="hint">有效 JSON 控制可覆盖模式和气压；退出或超时后恢复网页默认值。“跟随遥控状态”默认回到人工。</p>
+                    <div class="field-grid">
+                        <label>制动气压 1（MPa）<input id="feedbackPressure1" name="air_pressure_1" type="number" min="0" max="8" step="0.01" required></label>
+                        <label>制动气压 2（MPa）<input id="feedbackPressure2" name="air_pressure_2" type="number" min="0" max="8" step="0.01" required></label>
+                    </div>
+                    <p class="hint">气压输入范围 0～8 MPa。车舱协议保持原样，超过 2.55 MPa 时舱端读数可能不一致。自动模式仅模拟状态反馈。</p>
+                    <button class="primary-button" id="saveVehicleFeedback" type="submit" disabled>保存并应用</button>
+                    <p class="hint" id="vehicleFeedbackStatus" role="status" aria-live="polite">正在读取配置…</p>
+                    <p class="hint" id="vehicleFeedbackEffective">当前反馈：—</p>
+                </form>
+            </details>
+
             <details class="response-config collapsible-section">
                 <summary><span>速度响应</span></summary>
                 <div class="collapsible-body">

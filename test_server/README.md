@@ -2,6 +2,8 @@
 
 用于 C# 驾驶舱客户端本地联调的 HTTP + TCP 模拟平台。
 
+已支持 `vehicle_backend=remotectl-dds`：收到控车请求后启动真实原生 `remotectl`，由 DDS 接入动力学；收到 `0x12 ended=1` 后回收车端进程。默认配置仍使用原 Python 车端。Linux 集成部署的端口、配置和验证记录见 [部署说明](../sim_tcp_gui/deploy/linux/DEPLOYMENT.md)。
+
 
 配置文件在当前目录的 `simulator.json`，可通过命令行参数覆盖：
 

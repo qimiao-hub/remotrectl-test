@@ -10,7 +10,7 @@
     "steering_endian": "little"
   },
   "vehicle_output": {
-    "enabled": true,
+    "enabled": false,
     "url": "http://127.0.0.1:18081/__vehicle/realtime_report",
     "publish_interval": 0.2,
     "request_timeout": 0.5,
@@ -25,5 +25,34 @@
       "lift_reached": 0,
       "lower_reached": 0
     }
+  },
+  "dds_output": {
+    "enabled": true,
+    "executable": "native/build/bin/sim-dds-bridge.exe",
+    "topics_config": "dds_topics.json",
+    "cockpit_address": "127.0.0.1:11245",
+    "address_sequence": 1,
+    "publish_interval": 0.05,
+    "control_source": "remotectl",
+    "control_timeout": 1.0,
+    "vehicle_type": 1,
+    "steering_ratio": 12.0,
+    "wire_defaults": {
+      "fuel_level": 89,
+      "SOC": 89,
+      "engine_coolant_temperature": 24,
+      "air_pressure_1": 0,
+      "air_pressure_2": 0
+    },
+    "safe_feedback": {},
+    "curb_feedback": {
+      "distance": 100,
+      "left_wheel_distance": 100,
+      "right_wheel_distance": 100
+    },
+    "environment_config_file": "environment_config.json",
+    "front_obstacles": [],
+    "back_obstacles": [],
+    "round_vehicles": []
   }
 }

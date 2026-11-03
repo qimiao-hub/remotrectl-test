@@ -5,6 +5,7 @@ tcp:
   version: 0x0C
   steering_endian: little
   log_frames: true
+  protocol: T1
 
 api:
   host: 0.0.0.0

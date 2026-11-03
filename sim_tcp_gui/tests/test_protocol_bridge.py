@@ -139,6 +139,31 @@ class _FakeBackgroundComponent(object):
 
 
 class StateBridgeTests(unittest.TestCase):
+    def test_telemetry_can_read_snapshot_during_construction(self):
+        """覆盖遥测线程在构造期间立即读取快照的路径，确保不存在未初始化的适配器。"""
+        captured = []
+
+        def eager_telemetry(state_provider, control_handler):
+            """在工厂返回之前读取完整快照，模拟真实遥测线程抢先运行。"""
+            captured.append(state_provider())
+            return _FakeTelemetry(state_provider, control_handler)
+
+        manager = StateManager(
+            bridge_config={"hil": {"enabled": False}, "vehicle_output": {"enabled": False}},
+            auto_start=False,
+            dynamics=_FakeDynamics(),
+            hil_client_factory=_FakeBackgroundComponent,
+            publisher_factory=_FakeBackgroundComponent,
+            telemetry_server_factory=eager_telemetry,
+        )
+        try:
+            self.assertEqual(len(captured), 1)
+            self.assertIn("dds", captured[0])
+            self.assertIn("hil", captured[0])
+            self.assertEqual(captured[0]["tcp"]["clients"], 0)
+        finally:
+            manager.close()
+
     def test_hil_fields_are_retained_while_controls_are_decoupled(self):
         manager = StateManager(
             bridge_config={

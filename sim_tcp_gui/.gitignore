@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 local_state/
+native/build/
+dds_bridge.log
+.integration/
+.venv/

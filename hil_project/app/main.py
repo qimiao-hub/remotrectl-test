@@ -4,7 +4,7 @@ import contextlib
 import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
@@ -28,6 +28,12 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 class StatePatchRequest(BaseModel):
     signals: dict[str, int | float | bool]
     source: str = "api"
+
+
+class TcpProtocolRequest(BaseModel):
+    """网页选择的输出协议；其他名称由请求模型拒绝。"""
+
+    protocol: Literal["T1", "T1-3"]
 
 
 class SerialSendRequest(BaseModel):
@@ -65,6 +71,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    """创建共享信号状态、可切换 TCP 输出协议及硬件适配器，注册网页与控制接口。"""
     logging.basicConfig(level=logging.INFO)
     settings = settings or load_settings()
     event_bus = EventBus()
@@ -96,7 +103,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/v1/state")
     async def get_state() -> dict[str, Any]:
-        return state_store.as_response()
+        """返回信号状态和当前全局 TCP 输出协议，供网页连接时同步显示。"""
+        return {**state_store.as_response(), "tcp_protocol": app.state.tcp_server.protocol_info()}
+
+    @app.get("/api/v1/tcp/protocol")
+    async def get_tcp_protocol() -> dict[str, object]:
+        """查询服务端当前输出协议及其帧长，不改变 TCP 连接。"""
+        return app.state.tcp_server.protocol_info()
+
+    @app.patch("/api/v1/tcp/protocol")
+    async def set_tcp_protocol(request: TcpProtocolRequest) -> dict[str, object]:
+        """切换所有连接的后续输出并广播事件；运行时选择不写回 YAML。"""
+        info = app.state.tcp_server.set_protocol(request.protocol)
+        await event_bus.publish("tcp.protocol_changed", info)
+        return info
 
     @app.get("/api/v1/signals")
     async def get_signals() -> dict[str, Any]:
@@ -113,13 +133,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"applied": result.applied, "ignored": result.ignored, **state_store.as_response()}
 
     @app.get("/api/v1/state/frame")
-    async def get_state_frame() -> dict[str, str]:
+    async def get_state_frame() -> dict[str, Any]:
+        """按与真实 TCP 响应一致的当前协议生成帧预览，包含协议名及字节长度。"""
+        protocol_name = app.state.tcp_server.protocol_name
         frame = encode_state(
             state_store.snapshot(),
             version=settings.tcp.version,
             steering_endian=settings.tcp.steering_endian,
+            protocol_name=protocol_name,
         )
-        return {"hex": frame.hex()}
+        return {"hex": frame.hex(), "protocol": protocol_name, "frame_length": len(frame)}
 
     @app.post("/api/v1/serial/send")
     async def serial_send(request: SerialSendRequest) -> dict[str, Any]:
@@ -144,8 +167,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.websocket("/ws/v1/state")
     async def state_websocket(websocket: WebSocket) -> None:
+        """推送初始信号及协议快照，再转发状态和协议切换事件以同步多个网页。"""
         await websocket.accept()
-        await websocket.send_json({"type": "state.snapshot", "payload": state_store.as_response()})
+        await websocket.send_json({"type": "state.snapshot", "payload": {
+            **state_store.as_response(), "tcp_protocol": app.state.tcp_server.protocol_info()}})
         try:
             async with event_bus.subscribe() as queue:
                 while True:

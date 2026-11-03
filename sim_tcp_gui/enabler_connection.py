@@ -103,6 +103,7 @@ class SocketHandler(threading.Thread):
             self.close()
 
     def _drain_buffer(self):
+        """逐行解析 JSON 并调用控制入口，ACK 返回控制量及实际反馈；非法报文单独拒绝。"""
         while "\n" in self.buffer:
             raw, self.buffer = self.buffer.split("\n", 1)
             raw = raw.strip()
@@ -118,6 +119,8 @@ class SocketHandler(threading.Thread):
                     "accepted": True,
                     "controls": snapshot["controls"],
                 }
+                if "vehicle_feedback" in snapshot:
+                    response["vehicle_feedback"] = snapshot["vehicle_feedback"]
             except Exception as exc:
                 response = {"type": "ack", "accepted": False, "error": str(exc)}
             self.record_message(self.address, raw)

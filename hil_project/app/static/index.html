@@ -89,6 +89,14 @@
                 <button id="copyFrameButton" class="text-button" type="button">复制</button>
               </div>
               <code id="frameHex" class="frame-hex">--</code>
+              <label class="protocol-control" for="tcpProtocolSelect">
+                <span>TCP 输出协议</span>
+                <select id="tcpProtocolSelect" disabled>
+                  <option value="T1">T1</option>
+                  <option value="T1-3">T1-3</option>
+                </select>
+              </label>
+              <p id="tcpProtocolInfo" class="protocol-info" role="status" aria-live="polite">T1 · 14 字节</p>
             </section>
           </aside>
         </section>
@@ -144,6 +152,6 @@
         </section>
       </main>
     </div>
-    <script src="/static/app.js" defer></script>
+    <script src="/static/app.js?v=20261022-exclusive" defer></script>
   </body>
 </html>

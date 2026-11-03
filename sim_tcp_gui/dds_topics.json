@@ -1,0 +1,12 @@
+{
+  "domain_id": 0,
+  "topics": {
+    "CmdtoRemoteCtrl": "CmdtoRemoteCtrl",
+    "CmdCtrlACK": "CmdCtrlACK",
+    "WirectlFeedbackInfo": "WirectlFeedbackInfo",
+    "GpsImuInfo": "GpsImuInfo",
+    "SafeFeedbackInfo": "SafeFeedbackInfo",
+    "CloudRoundVehicleList": "CloudRoundVehicleList",
+    "ImpleResultInfo": "ImpleResultInfo"
+  }
+}

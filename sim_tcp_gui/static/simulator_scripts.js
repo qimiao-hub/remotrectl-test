@@ -621,9 +621,11 @@ async function applyMapSettings() {
   renderMapObjects();
 }
 
+/** 同步车辆状态、地图和反馈配置；各编辑区域自行保护未保存的输入。 */
 function renderState(state) {
   if (!state || !state.vehicle) return;
   appState.latest = state;
+  renderVehicleFeedback(state.vehicle_feedback);
   appState.paused = state.paused;
   appState.controls = { ...appState.controls, ...state.controls };
   if (!responseConfigDirty) {

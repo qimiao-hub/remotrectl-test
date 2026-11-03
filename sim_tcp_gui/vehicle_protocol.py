@@ -117,7 +117,10 @@ class VehicleReportMapper(object):
 
 
 def protocol_time(now=None):
+    """按参考文档生成本地时间数组；正常末两字节为零，2020 年前使用旧实现的回退值。"""
     current = now or datetime.now()
+    if current.year < 2020:
+        return bytes((20, 12, 7, 16, 34, 45, 1, 9))
     return bytes(
         (
             current.year % 100,
@@ -127,7 +130,7 @@ def protocol_time(now=None):
             current.minute,
             current.second,
         )
-    ) + int(current.microsecond // 1000).to_bytes(2, "big")
+    ) + b"\x00\x00"
 
 
 def build_realtime_report_payload(report, now=None):

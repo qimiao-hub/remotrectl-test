@@ -7,6 +7,9 @@ from typing import Any
 from app.events import EventBus
 from app.signals import DATA_DEFINITION_BY_NAME, DATA_DEFINITIONS
 
+GEAR_NAMES = ("S2-N", "S2-R", "S2-D")
+EXCLUSIVE_GROUPS = (GEAR_NAMES, ("Q7-1", "Q7-2"), ("Q8-1", "Q8-2"))
+
 
 class UnknownSignalError(ValueError):
     pass
@@ -38,11 +41,18 @@ class StateStore:
         return dict(self._owners)
 
     async def apply_updates(self, source: str, signals: dict[str, int | float | bool]) -> SignalUpdateResult:
+        """按来源优先级原子更新信号；使能互斥组成员时清零同组其他成员，并发布实际更新事件。"""
         updates = self._validate_updates(signals)
         applied: dict[str, int] = {}
         ignored: dict[str, int] = {}
 
         async with self._lock:
+            # 每组整体校验权限，避免低优先级来源只写入部分成员而破坏互斥。
+            for group in EXCLUSIVE_GROUPS:
+                if any(updates.get(name) == 1 for name in group):
+                    if not all(self._can_update(name, source) for name in group):
+                        for name in group:
+                            ignored[name] = updates.pop(name)
             for name, value in updates.items():
                 if self._can_update(name, source):
                     self._values[name] = value
@@ -67,6 +77,7 @@ class StateStore:
         await self._event_bus.publish("state.replaced", {"source": source, "signals": updates, "state": self.snapshot()})
 
     def _validate_updates(self, signals: dict[str, int | float | bool]) -> dict[str, int]:
+        """校验名称与取值，补齐互斥组其他成员清零；同组多个成员同时使能时报错。"""
         updates: dict[str, int] = {}
         for name, raw_value in signals.items():
             definition = DATA_DEFINITION_BY_NAME.get(name)
@@ -78,6 +89,14 @@ class StateStore:
                     f"{name}={value} out of range [{definition.minimum}, {definition.maximum}]"
                 )
             updates[name] = value
+        for group in EXCLUSIVE_GROUPS:
+            active_names = [name for name in group if updates.get(name) == 1]
+            if len(active_names) > 1:
+                raise SignalRangeError(f"Only one signal in {group} can be enabled at a time.")
+            if active_names:
+                # 各组独立互斥，API、手柄和强制状态替换均遵守相同规则。
+                for name in group:
+                    updates[name] = int(name == active_names[0])
         return updates
 
     def _can_update(self, signal_name: str, source: str) -> bool:

@@ -14,6 +14,7 @@ class TcpConfig(BaseModel):
     version: int = 0x0C
     steering_endian: Literal["little", "big"] = "little"
     log_frames: bool = True
+    protocol: Literal["T1", "T1-3"] = "T1"
 
 
 class ApiConfig(BaseModel):

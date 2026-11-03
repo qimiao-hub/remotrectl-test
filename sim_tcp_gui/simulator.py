@@ -30,13 +30,35 @@ def get_state():
 
 @app.post("/api/control")
 def set_control():
+    """接收动力学及临时反馈 JSON；字段非法时返回 400，供网页或外部客户端修正。"""
     payload = request.get_json(force=True, silent=True) or {}
-    return jsonify(g_state.update_controls(payload))
+    try:
+        return jsonify(g_state.update_controls(payload))
+    except (ValueError, TypeError) as error:
+        return jsonify(error=str(error)), 400
 
 
 @app.get("/api/map")
 def get_map():
     return jsonify(g_state.map_payload())
+
+
+@app.get("/api/vehicle-feedback")
+def get_vehicle_feedback():
+    """返回持久化模式、两路制动气压和实际反馈模式。"""
+    return jsonify(g_state.vehicle_feedback_payload())
+
+
+@app.post("/api/vehicle-feedback")
+def set_vehicle_feedback():
+    """保存网页反馈配置；非法输入返回 400，存储失败返回 500 且保留原设置。"""
+    try:
+        return jsonify(g_state.update_vehicle_feedback(request.get_json(silent=True)))
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    except OSError:
+        app.logger.exception("车辆反馈配置保存失败")
+        return jsonify(error="保存失败，请检查配置目录权限或磁盘空间"), 500
 
 
 @app.get("/api/map/export")
@@ -120,4 +142,5 @@ if __name__ == "__main__":
     print(f"HIL TCP client: {hil['host']}:{hil['port']}")
     output = g_state.vehicle_publisher.status()
     print(f"Vehicle protocol output: {output['url']}")
+    print(f"DDS bridge enabled: {g_state.dds_bridge.status()['enabled']} (status: /api/state -> dds)")
     app.run(use_reloader=False, host="0.0.0.0", port=flask_port, threaded=True)

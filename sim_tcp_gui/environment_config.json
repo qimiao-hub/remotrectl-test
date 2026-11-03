@@ -1,0 +1,48 @@
+{
+  "front_obstacles": [
+    {
+      "type": 0,
+      "box": {
+        "object_type": 1,
+        "center": [-6, 8, 0],
+        "object_width": 2.5,
+        "object_height": 2
+      }
+    },
+    {
+      "type": 0,
+      "box": {
+        "object_type": 1,
+        "center": [6, 8, 0],
+        "object_width": 2.5,
+        "object_height": 2
+      }
+    }
+  ],
+  "back_obstacles": [
+    {
+      "type": 0,
+      "box": {
+        "object_type": 1,
+        "center": [-6, -8, 0],
+        "object_width": 2.5,
+        "object_height": 2
+      }
+    },
+    {
+      "type": 0,
+      "box": {
+        "object_type": 1,
+        "center": [6, -8, 0],
+        "object_width": 2.5,
+        "object_height": 2
+      }
+    }
+  ],
+  "round_vehicles": [
+    {"device_type": 0, "lateral_m": 0, "longitudinal_m": 20, "heading_deg": 30},
+    {"device_type": 0, "lateral_m": 0, "longitudinal_m": -20, "heading_deg": 100},
+    {"device_type": 0, "lateral_m": -20, "longitudinal_m": 0, "heading_deg": 200},
+    {"device_type": 0, "lateral_m": 20, "longitudinal_m": 0, "heading_deg": 320}
+  ]
+}

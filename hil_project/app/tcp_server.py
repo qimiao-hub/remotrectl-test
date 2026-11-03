@@ -6,15 +6,15 @@ import logging
 
 from app.config import TcpConfig
 from app.protocol import (
-    FRAME_LENGTH,
     HEADER_LENGTH,
-    PAYLOAD_LENGTH,
+    PROTOCOL_FRAME_LENGTHS,
     READ_MESSAGE,
     WRITE_MESSAGE,
     ProtocolError,
     decode_payload,
     encode_state,
     parse_frame,
+    protocol_frame_length,
 )
 from app.state import StateStore
 
@@ -22,6 +22,23 @@ LOGGER = logging.getLogger(__name__)
 
 
 class TcpProtocolServer:
+    @property
+    def protocol_name(self) -> str:
+        """返回所有连接及帧预览共用的当前输出协议名称。"""
+        return self._config.protocol
+
+    def protocol_info(self) -> dict[str, object]:
+        """返回输出协议及长度元数据，供网页初始化和多页面切换同步。"""
+        length = protocol_frame_length(self.protocol_name)
+        return {"protocol": self.protocol_name, "frame_length": length,
+                "payload_length": length - HEADER_LENGTH, "available": list(PROTOCOL_FRAME_LENGTHS)}
+
+    def set_protocol(self, protocol_name: str) -> dict[str, object]:
+        """切换后续响应使用的协议，不重启 TCP 监听、不关闭现有连接，也不重置独立信号。"""
+        protocol_frame_length(protocol_name)
+        self._config.protocol = protocol_name
+        return self.protocol_info()
+
     def __init__(self, config: TcpConfig, state_store: StateStore) -> None:
         self._config = config
         self._state_store = state_store
@@ -70,6 +87,7 @@ class TcpProtocolServer:
                 await writer.wait_closed()
 
     def _payload_length_from_header(self, header: bytes) -> int:
+        """按请求自身的长度拆包，接收两种布局；网页输出切换不改变在途请求的读取长度。"""
         if len(header) != HEADER_LENGTH:
             raise ProtocolError(f"Invalid header length: {len(header)}.")
 
@@ -78,11 +96,15 @@ class TcpProtocolServer:
         if message_type == READ_MESSAGE:
             if length in {0, HEADER_LENGTH}:
                 return 0
-            if length in {PAYLOAD_LENGTH, FRAME_LENGTH}:
-                return PAYLOAD_LENGTH
+            if length in PROTOCOL_FRAME_LENGTHS.values():
+                return length - HEADER_LENGTH
+            if length in {size - HEADER_LENGTH for size in PROTOCOL_FRAME_LENGTHS.values()}:
+                return length
         elif message_type == WRITE_MESSAGE:
-            if length in {PAYLOAD_LENGTH, FRAME_LENGTH}:
-                return PAYLOAD_LENGTH
+            if length in PROTOCOL_FRAME_LENGTHS.values():
+                return length - HEADER_LENGTH
+            if length in {size - HEADER_LENGTH for size in PROTOCOL_FRAME_LENGTHS.values()}:
+                return length
 
         if length >= HEADER_LENGTH:
             return length - HEADER_LENGTH
@@ -106,6 +128,7 @@ class TcpProtocolServer:
         return summary
 
     async def handle_frame(self, data: bytes) -> bytes:
+        """处理独立信号写入后，以当前选择的输出布局立即响应，保留消息 ID 和请求的长度约定。"""
         frame = parse_frame(data)
         if frame.message_type == WRITE_MESSAGE:
             values = decode_payload(data, self._config.steering_endian)
@@ -118,9 +141,10 @@ class TcpProtocolServer:
             message_id=frame.message_id,
             message_type=message_type,
             steering_endian=self._config.steering_endian,
+            protocol_name=self.protocol_name,
         )
-        if frame.length == PAYLOAD_LENGTH:
+        if frame.payload and frame.length == len(frame.payload):
             response = bytearray(response)
-            response[3] = PAYLOAD_LENGTH
+            response[3] = len(response) - HEADER_LENGTH
             return bytes(response)
         return response

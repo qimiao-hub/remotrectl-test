@@ -6,6 +6,8 @@ const state = {
   signalMap: new Map(),
   values: {},
   owners: {},
+  tcpProtocol: "T1",
+  protocolChanging: false,
   gamepadIndex: null,
   gamepadBindings: {},
   gamepadAxisBindings: {},
@@ -19,7 +21,7 @@ const state = {
 };
 
 const groupOrder = ["档位", "按钮/拨杆", "灯光", "雨刮"];
-const numericNames = ["Steering", "Throttle", "Brake"];
+const numericNames = ["Steering", "Throttle", "Brake", "Brake2"];
 const axisThreshold = 0.55;
 const axisReleaseThreshold = 0.35;
 const ignoredGamepadButtons = new Set([15, 16]);
@@ -55,6 +57,8 @@ const els = {
   faultSignals: document.querySelector("#faultSignals"),
   numericControls: document.querySelector("#numericControls"),
   frameHex: document.querySelector("#frameHex"),
+  tcpProtocolSelect: document.querySelector("#tcpProtocolSelect"),
+  tcpProtocolInfo: document.querySelector("#tcpProtocolInfo"),
   eventLog: document.querySelector("#eventLog"),
   refreshButton: document.querySelector("#refreshButton"),
   clearLogButton: document.querySelector("#clearLogButton"),
@@ -109,6 +113,7 @@ async function requestJson(path, options = {}) {
   return response.json();
 }
 
+/** 连接服务并读取信号和实际 TCP 协议，再启用控件与实时事件通道。 */
 async function connect() {
   state.baseUrl = buildBaseUrl();
   setConnectionUi("connecting");
@@ -141,6 +146,7 @@ function disconnect() {
   logEvent("连接", "已断开");
 }
 
+/** 建立实时通道，同步信号状态及其他网页发起的全局 TCP 协议切换。 */
 function openWebSocket() {
   if (state.ws) {
     state.ws.close();
@@ -152,6 +158,7 @@ function openWebSocket() {
     logEvent("WebSocket", "实时通道已建立");
   });
 
+  // 接收事件时同步协议选择和可见数值通道，防止不同网页显示不同输出格式。
   ws.addEventListener("message", (event) => {
     const payload = JSON.parse(event.data);
     if (payload.type === "state.snapshot") {
@@ -160,6 +167,9 @@ function openWebSocket() {
     if (payload.type === "state.updated" || payload.type === "state.replaced") {
       applyStatePayload({ signals: payload.payload.state || payload.payload.signals, owners: state.owners });
       logEvent("状态更新", summarizeSignals(payload.payload.signals || {}));
+    }
+    if (payload.type === "tcp.protocol_changed") {
+      applyTcpProtocol(payload.payload);
     }
     renderDynamicState();
   });
@@ -176,9 +186,47 @@ function openWebSocket() {
   });
 }
 
+/** 合并信号快照，并以服务端确认的协议初始化或恢复下拉框。 */
 function applyStatePayload(payload) {
   state.values = { ...state.values, ...(payload.signals || {}) };
   state.owners = { ...state.owners, ...(payload.owners || {}) };
+  if (payload.tcp_protocol) applyTcpProtocol(payload.tcp_protocol);
+}
+
+/** 同步服务端当前协议，仅在 T1-3 中显示扩展通道，保留原始 Brake 和 Brake2 的独立值。 */
+function applyTcpProtocol(info) {
+  if (!info || !["T1", "T1-3"].includes(info.protocol)) return;
+  const changed = state.tcpProtocol !== info.protocol;
+  state.tcpProtocol = info.protocol;
+  els.tcpProtocolSelect.value = info.protocol;
+  els.tcpProtocolInfo.textContent = `${info.protocol} · ${info.frame_length} 字节${info.protocol === "T1-3" ? " · 独立扩展通道 0～100%" : ""}`;
+  if (changed) {
+    renderNumericControls();
+    renderBindingOptions();
+    updateNumerics();
+  }
+}
+
+/** 将下拉选择提交给服务端；失败时恢复最后确认的值，并提示实际错误。 */
+async function switchTcpProtocol() {
+  if (!state.connected || state.protocolChanging) return;
+  const selected = els.tcpProtocolSelect.value;
+  state.protocolChanging = true;
+  els.tcpProtocolSelect.disabled = true;
+  try {
+    const info = await requestJson("/api/v1/tcp/protocol", {
+      method: "PATCH", body: JSON.stringify({ protocol: selected }),
+    });
+    applyTcpProtocol(info);
+    await updateFrame();
+    logEvent("TCP 协议", `已切换为 ${info.protocol}，后续响应使用 ${info.frame_length} 字节`);
+  } catch (error) {
+    els.tcpProtocolSelect.value = state.tcpProtocol;
+    logEvent("TCP 协议切换失败", error.message);
+  } finally {
+    state.protocolChanging = false;
+    els.tcpProtocolSelect.disabled = !state.connected;
+  }
 }
 
 function renderAll() {
@@ -221,10 +269,12 @@ function renderFlagButton(signal) {
   `;
 }
 
+/** 根据当前协议创建独立数值控件，T1 不展示未参与输出的 Brake2。 */
 function renderNumericControls() {
   const controls = numericNames
     .map((name) => state.signalMap.get(name))
-    .filter(Boolean)
+    // Brake2 的元数据始终可读取，只有 T1-3 参与网页数值调节和实际输出。
+    .filter((signal) => signal && (signal.name !== "Brake2" || state.tcpProtocol === "T1-3"))
     .map(
       (signal) => `
         <div class="numeric-card" data-numeric="${escapeAttr(signal.name)}">
@@ -272,11 +322,20 @@ function renderFaultSignals() {
   });
 }
 
+/** 按当前协议列出可绑定信号，切回 T1 时保留扩展通道已有绑定但不再提供新绑定入口。 */
 function renderBindingOptions() {
-  const bindableSignals = state.signals.filter((signal) => signal.group !== "故障状态");
+  const previous = els.bindingSignalSelect.value;
+  // 扩展通道仅在 T1-3 下可见，避免绑定了却未输出的误解。
+  const bindableSignals = state.signals.filter((signal) => signal.group !== "故障状态" && (signal.name !== "Brake2" || state.tcpProtocol === "T1-3"));
   els.bindingSignalSelect.innerHTML = bindableSignals
     .map((signal) => `<option value="${escapeAttr(signal.name)}">${escapeHtml(signal.name)} - ${escapeHtml(signal.description)}</option>`)
     .join("");
+  // 更新协议时保留仍有效的选项；若扩展绑定目标已隐藏，则结束等待输入状态。
+  if (bindableSignals.some((signal) => signal.name === previous)) els.bindingSignalSelect.value = previous;
+  if (state.tcpProtocol === "T1" && state.bindingTarget === "Brake2") {
+    state.bindingTarget = null;
+    renderBindings();
+  }
 }
 
 function renderBindings() {
@@ -334,15 +393,18 @@ function updateFaults() {
   });
 }
 
+/** 汇总在线、当前协议可见信号数量与故障状态。 */
 function updateSummary() {
   const faults = state.signals.filter((signal) => signal.group === "故障状态");
   const activeFaults = faults.filter((signal) => Number(state.values[signal.name] || 0) === 0).length;
   els.summaryOnline.textContent = state.connected ? "在线" : "离线";
-  els.summaryCount.textContent = String(state.signals.length || "--");
+  // 旧协议不计算末尾扩展通道，服务端仍保存其运行态以便切换回来。
+  els.summaryCount.textContent = String(state.signals.filter((signal) => signal.name !== "Brake2" || state.tcpProtocol === "T1-3").length || "--");
   els.summaryFault.textContent = faults.length ? `${activeFaults}/${faults.length}` : "--";
   els.summaryUpdated.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
 }
 
+/** 刷新真实编码器生成的 TCP 帧，丢弃切换前在途返回的旧协议预览。 */
 async function updateFrame() {
   if (!state.connected) {
     els.frameHex.textContent = "--";
@@ -350,6 +412,7 @@ async function updateFrame() {
   }
   try {
     const payload = await requestJson("/api/v1/state/frame");
+    if (payload.protocol && payload.protocol !== state.tcpProtocol) return;
     els.frameHex.textContent = formatHex(payload.hex);
   } catch (error) {
     els.frameHex.textContent = "读取失败";
@@ -361,6 +424,7 @@ async function toggleBitSignal(name) {
   await writeSignal(name, current ? 0 : 1);
 }
 
+/** 根据名称和值写入信号；使能互斥组成员时清零同组其他成员，成功后更新界面，失败时记录日志。 */
 async function writeSignal(name, value) {
   if (!state.connected) {
     logEvent("写入失败", "服务未连接");
@@ -368,10 +432,20 @@ async function writeSignal(name, value) {
   }
   const signal = state.signalMap.get(name);
   const nextValue = clamp(Number(value), signal.minimum, signal.maximum);
+  const signals = { [name]: nextValue };
+  const exclusiveGroups = [["S2-N", "S2-R", "S2-D"], ["Q7-1", "Q7-2"], ["Q8-1", "Q8-2"]];
+  for (const group of exclusiveGroups) {
+    if (group.includes(name) && nextValue === 1) {
+      // 同一请求提交整组状态，避免切换时同时使能相反动作；不同组互不影响。
+      for (const member of group) {
+        signals[member] = member === name ? 1 : 0;
+      }
+    }
+  }
   try {
     const payload = await requestJson("/api/v1/state", {
       method: "PATCH",
-      body: JSON.stringify({ source: "api", signals: { [name]: nextValue } }),
+      body: JSON.stringify({ source: "api", signals }),
     });
     applyStatePayload(payload);
     renderDynamicState();
@@ -382,8 +456,10 @@ async function writeSignal(name, value) {
   }
 }
 
+/** 切换连接状态及控件可用性；未连接或协议切换中禁止再次选择协议。 */
 function setConnectionUi(mode) {
   state.connected = mode === "online";
+  els.tcpProtocolSelect.disabled = !state.connected || state.protocolChanging;
   els.connectButton.disabled = mode === "connecting" || mode === "online";
   els.disconnectButton.disabled = mode !== "online";
   els.connectionStatus.classList.toggle("online", mode === "online");
@@ -894,6 +970,8 @@ window.addEventListener("gamepaddisconnected", () => {
   els.gamepadName.textContent = "未检测到手柄";
   logEvent("手柄", "手柄已断开");
 });
+
+els.tcpProtocolSelect.addEventListener("change", switchTcpProtocol);
 
 loadGamepadBindings();
 renderBindings();

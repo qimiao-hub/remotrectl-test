@@ -33,24 +33,24 @@ DATA_DEFINITIONS: tuple[SignalDefinition, ...] = (
     SignalDefinition("S2-N", "空挡", 4, 1, "unsigned", 0, 0, 1),
     SignalDefinition("S2-R", "后退挡", 4, 1, "unsigned", 1, 0, 1),
     SignalDefinition("S2-D", "前进挡", 4, 1, "unsigned", 2, 0, 1),
-    SignalDefinition("A1", "自复位按钮", 4, 1, "unsigned", 3, 0, 1),
-    SignalDefinition("A2", "自锁按钮", 4, 1, "unsigned", 4, 0, 1),
-    SignalDefinition("A3", "自锁按钮", 4, 1, "unsigned", 5, 0, 1),
-    SignalDefinition("B1", "自锁拨杆", 4, 1, "unsigned", 6, 0, 1),
-    SignalDefinition("B2", "自锁拨杆", 4, 1, "unsigned", 7, 0, 1),
-    SignalDefinition("B3", "自锁拨杆", 5, 1, "unsigned", 0, 0, 1),
-    SignalDefinition("B4", "自锁拨杆", 5, 1, "unsigned", 1, 0, 1),
-    SignalDefinition("B5", "自锁拨杆", 5, 1, "unsigned", 2, 0, 1),
-    SignalDefinition("Q1", "自锁翘板", 5, 1, "unsigned", 3, 0, 1),
-    SignalDefinition("Q2", "自锁翘板", 5, 1, "unsigned", 4, 0, 1),
+    SignalDefinition("A1", "喇叭", 4, 1, "unsigned", 3, 0, 1),
+    SignalDefinition("A2", "双闪", 4, 1, "unsigned", 4, 0, 1),
+    SignalDefinition("A3", "驻车", 4, 1, "unsigned", 5, 0, 1),
+    SignalDefinition("B1", "取力", 4, 1, "unsigned", 6, 0, 1),
+    SignalDefinition("B2", "雨刷", 4, 1, "unsigned", 7, 0, 1),
+    SignalDefinition("B3", "降档", 5, 1, "unsigned", 0, 0, 1),
+    SignalDefinition("B4", "排气制动", 5, 1, "unsigned", 1, 0, 1),
+    SignalDefinition("B5", "轴差", 5, 1, "unsigned", 2, 0, 1),
+    SignalDefinition("Q1", "雾灯", 5, 1, "unsigned", 3, 0, 1),
+    SignalDefinition("Q2", "示廓灯", 5, 1, "unsigned", 4, 0, 1),
     SignalDefinition("Q3", "自锁翘板", 5, 1, "unsigned", 5, 0, 1),
     SignalDefinition("Q4", "自锁翘板", 5, 1, "unsigned", 6, 0, 1),
     SignalDefinition("Q5", "自锁翘板", 5, 1, "unsigned", 7, 0, 1),
     SignalDefinition("Q6", "自锁翘板", 6, 1, "unsigned", 0, 0, 1),
-    SignalDefinition("Q7-1", "自锁翘板", 6, 1, "unsigned", 1, 0, 1),
-    SignalDefinition("Q7-2", "自锁翘板", 6, 1, "unsigned", 2, 0, 1),
-    SignalDefinition("Q8-1", "自锁翘板", 6, 1, "unsigned", 3, 0, 1),
-    SignalDefinition("Q8-2", "自锁翘板", 6, 1, "unsigned", 4, 0, 1),
+    SignalDefinition("Q7-1", "开篷布", 6, 1, "unsigned", 1, 0, 1),
+    SignalDefinition("Q7-2", "关篷布", 6, 1, "unsigned", 2, 0, 1),
+    SignalDefinition("Q8-1", "举升", 6, 1, "unsigned", 3, 0, 1),
+    SignalDefinition("Q8-2", "下降", 6, 1, "unsigned", 4, 0, 1),
     SignalDefinition("J1", "急停开关", 6, 1, "unsigned", 5, 0, 1),
     SignalDefinition("X1", "点火", 7, 1, "unsigned", 0, 0, 1),
     SignalDefinition("X2", "喇叭", 7, 1, "unsigned", 1, 0, 1),
@@ -74,6 +74,7 @@ DATA_DEFINITIONS: tuple[SignalDefinition, ...] = (
     SignalDefinition("预留_Bit5", "预留", 13, 1, "unsigned", 5, 0, 1),
     SignalDefinition("预留_Bit6", "预留", 13, 1, "unsigned", 6, 0, 1),
     SignalDefinition("预留_Bit7", "预留", 13, 1, "unsigned", 7, 0, 1),
+    SignalDefinition("Brake2", "扩展通道（T1-3）", 14, 8, "unsigned", None, 0, 100, unit="%"),
 )
 
 DATA_DEFINITION_BY_NAME = {definition.name: definition for definition in DATA_DEFINITIONS}
@@ -81,11 +82,12 @@ ALL_DEFINITIONS = HEADER_DEFINITIONS + DATA_DEFINITIONS
 
 
 def signal_group(definition: SignalDefinition) -> str:
+    """按信号用途分组，将 T1-3 独立百分比通道归入数值信号。"""
     name = definition.name
     description = definition.description
     if name in {"S2-N", "S2-R", "S2-D"}:
         return "档位"
-    if name in {"Steering", "Throttle", "Brake"}:
+    if name in {"Steering", "Throttle", "Brake", "Brake2"}:
         return "数值信号"
     if "故障" in name or "故障" in description or name.startswith("预留"):
         return "故障状态"
